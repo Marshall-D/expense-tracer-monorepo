@@ -11,6 +11,8 @@ provider:
   runtime: nodejs20.x
   region: us-east-1
   profile: expense-tracker
+  environment:
+    MONGO_URI: ${env:MONGO_URI, ''}
 
   httpApi:
     cors:
@@ -22,9 +24,6 @@ provider:
       allowedMethods:
         - GET
         - OPTIONS
-
-  environment:
-    MONGO_URI: ${env:MONGO_URI, ''}
 
 plugins:
   - serverless-esbuild
