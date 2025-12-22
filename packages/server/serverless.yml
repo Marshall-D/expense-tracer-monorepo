@@ -13,6 +13,7 @@ provider:
   profile: expense-tracker
   environment:
     MONGO_URI: ${env:MONGO_URI, ''}
+    JWT_SECRET: ${env:JWT_SECRET, ''}
 
   httpApi:
     cors:
