@@ -29,8 +29,8 @@ const getAllBudgetsImpl: APIGatewayProxyHandler = async (event) => {
   const rawQs = (event.queryStringParameters || {}) as Record<string, string>;
   const parsed = querySchema.safeParse(rawQs);
   if (!parsed.success) {
-    const details = parsed.error.errors.map((e) => ({
-      path: e.path.join("."),
+    const details = parsed.error.issues.map((e) => ({
+      path: Array.isArray(e.path) ? e.path.join(".") : String(e.path ?? ""),
       message: e.message,
     }));
     return jsonResponse(400, {

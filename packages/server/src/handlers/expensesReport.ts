@@ -42,11 +42,16 @@ const expensesExportImpl: APIGatewayProxyHandler = async (event) => {
   >;
   const parsed = querySchema.safeParse(qs);
   if (!parsed.success) {
+    const details = parsed.error.issues.map((e) => ({
+      path: Array.isArray(e.path) ? e.path.join(".") : String(e.path ?? ""),
+      message: e.message,
+    }));
     return jsonResponse(400, {
       error: "validation_error",
-      details: parsed.error.errors,
+      details,
     });
   }
+
   const { from, to, format } = parsed.data;
 
   if (format !== "csv") {

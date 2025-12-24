@@ -24,11 +24,17 @@ const reportsTrendsImpl: APIGatewayProxyHandler = async (event) => {
   >;
   const parsed = querySchema.safeParse(qs);
   if (!parsed.success) {
+    const details = parsed.error.issues.map((e) => ({
+      path: Array.isArray(e.path) ? e.path.join(".") : "",
+      message: e.message,
+    }));
+
     return jsonResponse(400, {
       error: "validation_error",
-      details: parsed.error.errors,
+      details,
     });
   }
+
   const months = Math.max(1, Math.min(24, parsed.data.months)); // cap at 24 months
 
   const now = new Date();

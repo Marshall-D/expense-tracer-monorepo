@@ -56,6 +56,13 @@ export function requireAuth(
     } as any;
 
     // call wrapped handler
-    return handler(event, context, callback);
+    const result = await handler(event, context, callback);
+    return (
+      result ?? {
+        statusCode: 204,
+        headers: CORS_HEADERS,
+        body: "",
+      }
+    );
   };
 }

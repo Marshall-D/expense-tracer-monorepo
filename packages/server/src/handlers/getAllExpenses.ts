@@ -33,17 +33,20 @@ const getAllExpensesQuerySchema = z.object({
     .union([z.string(), z.number()])
     .optional()
     .transform((v) => {
-      const n = typeof v === "string" ? Number(v) : (v as number | undefined);
-      return Number.isFinite(n)
-        ? Math.max(1, Math.min(100, Math.trunc(n)))
-        : undefined;
+      if (v === undefined) return undefined;
+      const n = typeof v === "string" ? Number(v) : v;
+      if (!Number.isFinite(n)) return undefined;
+      return Math.max(1, Math.min(100, Math.trunc(n)));
     }),
+
   page: z
     .union([z.string(), z.number()])
     .optional()
     .transform((v) => {
-      const n = typeof v === "string" ? Number(v) : (v as number | undefined);
-      return Number.isFinite(n) ? Math.max(1, Math.trunc(n)) : undefined;
+      if (v === undefined) return undefined;
+      const n = typeof v === "string" ? Number(v) : v;
+      if (!Number.isFinite(n)) return undefined;
+      return Math.max(1, Math.trunc(n));
     }),
 });
 
@@ -56,8 +59,8 @@ const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
   const rawQs = (event.queryStringParameters || {}) as Record<string, string>;
   const parsed = getAllExpensesQuerySchema.safeParse(rawQs);
   if (!parsed.success) {
-    const details = parsed.error.errors.map((e) => ({
-      path: e.path.join("."),
+    const details = parsed.error.issues.map((e) => ({
+      path: Array.isArray(e.path) ? e.path.join(".") : "",
       message: e.message,
     }));
     return jsonResponse(400, {
@@ -66,6 +69,7 @@ const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
       details,
     });
   }
+
   const {
     from,
     to,

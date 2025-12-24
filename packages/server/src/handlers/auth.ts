@@ -1,7 +1,7 @@
 // packages/server/src/handlers/auth.ts
 import { APIGatewayProxyHandler } from "aws-lambda";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions, Secret } from "jsonwebtoken";
 import { getDb } from "../lib/mongo";
 import { parseAndValidate, jsonResponse } from "../lib/validation";
 import { registerSchema, loginSchema } from "../lib/validators";
@@ -72,9 +72,15 @@ export const register: APIGatewayProxyHandler = async (event) => {
     });
 
     const userId = result.insertedId.toString();
-    const token = jwt.sign({ userId, name }, jwtSecret, {
-      expiresIn: process.env.JWT_LIFETIME || "7d",
-    });
+
+    // --- Type-safe jwt.sign usage ---
+    const secret: Secret = jwtSecret as Secret;
+    const signOptions: SignOptions = {
+      expiresIn: (process.env.JWT_LIFETIME ??
+        "7d") as unknown as SignOptions["expiresIn"],
+    };
+    const token = jwt.sign({ userId, name }, secret, signOptions);
+    // -----------------------------------
 
     return json(201, {
       user: { id: userId, name, email },
@@ -158,9 +164,15 @@ export const login: APIGatewayProxyHandler = async (event) => {
     }
 
     const userId = user._id?.toString ? user._id.toString() : String(user._id);
-    const token = jwt.sign({ userId, name: user.name }, jwtSecret, {
-      expiresIn: process.env.JWT_LIFETIME || "7d",
-    });
+
+    // --- Type-safe jwt.sign usage ---
+    const secret: Secret = jwtSecret as Secret;
+    const signOptions: SignOptions = {
+      expiresIn: (process.env.JWT_LIFETIME ??
+        "7d") as unknown as SignOptions["expiresIn"],
+    };
+    const token = jwt.sign({ userId, name: user.name }, secret, signOptions);
+    // -----------------------------------
 
     return json(200, {
       user: { id: userId, name: user.name, email },

@@ -28,8 +28,8 @@ const reportsMonthlyImpl: APIGatewayProxyHandler = async (event) => {
   >;
   const parsed = querySchema.safeParse(qs);
   if (!parsed.success) {
-    const details = parsed.error.errors.map((e) => ({
-      path: e.path.join("."),
+    const details = parsed.error.issues.map((e) => ({
+      path: Array.isArray(e.path) ? e.path.join(".") : "",
       message: e.message,
     }));
     return jsonResponse(400, {
@@ -38,6 +38,7 @@ const reportsMonthlyImpl: APIGatewayProxyHandler = async (event) => {
       details,
     });
   }
+
   const { year, month } = parsed.data;
 
   // canonical UTC month boundaries
