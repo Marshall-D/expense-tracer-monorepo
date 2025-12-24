@@ -64,3 +64,29 @@ export const updateCategorySchema = createCategorySchema
   });
 
 export { objectIdString };
+
+/**
+ * Budgets
+ * periodStart: ISO date string representing the start of the period (e.g., 2025-12-01)
+ */
+export const createBudgetSchema = z.object({
+  categoryId: objectIdString.optional(),
+  category: z.string().min(1).optional(),
+  // require periodStart ISO date string (client should provide, e.g. "2025-12-01")
+  periodStart: z.string().refine((s) => !s || !Number.isNaN(Date.parse(s)), {
+    message: "invalid periodStart date",
+  }),
+  amount: z.preprocess((v) => {
+    if (typeof v === "string" && v.trim() !== "") {
+      const n = Number(v);
+      return isNaN(n) ? v : n;
+    }
+    return v;
+  }, z.number().positive("amount must be a positive number")),
+});
+
+export const updateBudgetSchema = createBudgetSchema
+  .partial()
+  .refine((obj) => obj && Object.keys(obj).length > 0, {
+    message: "At least one field must be provided to update.",
+  });

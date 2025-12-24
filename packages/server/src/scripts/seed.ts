@@ -38,7 +38,10 @@ async function main() {
       { name: 1 },
       { unique: true, collation: { locale: "en", strength: 2 } }
     );
-    await budgets.createIndex({ userId: 1, category: 1 }, { unique: true });
+    await budgets.createIndex(
+      { userId: 1, categoryId: 1, periodStart: 1 },
+      { unique: true }
+    );
 
     // Seed global categories (userId: null)
     const defaultCats = [

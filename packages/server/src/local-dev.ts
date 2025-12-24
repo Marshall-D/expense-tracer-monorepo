@@ -18,6 +18,11 @@ import { handler as getAllCategoriesHandler } from "./handlers/getAllCategories"
 import { handler as getCategoryHandler } from "./handlers/getCategory";
 import { handler as updateCategoriesHandler } from "./handlers/updateCategories";
 import { handler as deleteCategoryHandler } from "./handlers/deleteCategory";
+import { handler as createBudgetHandler } from "./handlers/createBudget";
+import { handler as getAllBudgetsHandler } from "./handlers/getAllBudgets";
+import { handler as getBudgetHandler } from "./handlers/getBudget";
+import { handler as updateBudgetHandler } from "./handlers/updateBudget";
+import { handler as deleteBudgetHandler } from "./handlers/deleteBudget";
 
 const app = express();
 app.use(bodyParser.json());
@@ -296,6 +301,89 @@ app.use((req, res, next) => {
     return;
   }
   next();
+});
+
+// POST /api/budgets
+app.post("/api/budgets", async (req, res) => {
+  try {
+    const event = toApiGatewayEvent(req);
+    const result = (await createBudgetHandler(
+      event as any,
+      {} as any,
+      () => null
+    )) as APIGatewayProxyResult | void;
+    return sendApiResponse(res, result);
+  } catch (err) {
+    console.error("local-dev budgets.create handler error", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/budgets
+app.get("/api/budgets", async (req, res) => {
+  try {
+    const event = toApiGatewayEvent(req);
+    const result = (await getAllBudgetsHandler(
+      event as any,
+      {} as any,
+      () => null
+    )) as any;
+    return sendApiResponse(res, result);
+  } catch (err) {
+    console.error("local-dev budgets.getAll handler error", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/budgets/:id
+app.get("/api/budgets/:id", async (req, res) => {
+  try {
+    const event = toApiGatewayEvent(req);
+    (event as any).pathParameters = req.params || {};
+    const result = (await getBudgetHandler(
+      event as any,
+      {} as any,
+      () => null
+    )) as APIGatewayProxyResult | void;
+    return sendApiResponse(res, result);
+  } catch (err) {
+    console.error("local-dev budgets.get handler error", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /api/budgets/:id
+app.put("/api/budgets/:id", async (req, res) => {
+  try {
+    const event = toApiGatewayEvent(req);
+    (event as any).pathParameters = req.params || {};
+    const result = (await updateBudgetHandler(
+      event as any,
+      {} as any,
+      () => null
+    )) as any;
+    return sendApiResponse(res, result);
+  } catch (err) {
+    console.error("local-dev budgets.update handler error", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/budgets/:id
+app.delete("/api/budgets/:id", async (req, res) => {
+  try {
+    const event = toApiGatewayEvent(req);
+    (event as any).pathParameters = req.params || {};
+    const result = (await deleteBudgetHandler(
+      event as any,
+      {} as any,
+      () => null
+    )) as any;
+    return sendApiResponse(res, result);
+  } catch (err) {
+    console.error("local-dev budgets.delete handler error", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 const port = Number(process.env.PORT || 3000);

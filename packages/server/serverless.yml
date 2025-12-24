@@ -118,3 +118,33 @@ functions:
       - httpApi:
           path: /api/categories/{id}
           method: delete
+  createBudget:
+    handler: src/handlers/createBudget.handler
+    events:
+      - httpApi:
+          path: /api/budgets
+          method: post
+  getAllBudgets:
+    handler: src/handlers/getAllBudgets.handler
+    events:
+      - httpApi:
+          path: /api/budgets
+          method: get
+  getBudget:
+    handler: src/handlers/getBudget.handler
+    events:
+      - httpApi:
+          path: /api/budgets/{id}
+          method: get
+  updateBudget:
+    handler: src/handlers/updateBudget.handler
+    events:
+      - httpApi:
+          path: /api/budgets/{id}
+          method: put
+  deleteBudget:
+    handler: src/handlers/deleteBudget.handler
+    events:
+      - httpApi:
+          path: /api/budgets/{id}
+          method: delete
