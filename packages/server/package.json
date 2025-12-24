@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "deploy": "pnpm exec serverless deploy",
     "start:offline": "pnpm exec serverless offline --httpPort 3000",
-    "seed": "ts-node --transpile-only src/scripts/seed.ts"
+    "seed": "ts-node --transpile-only src/scripts/seed.ts",
+    "lint": "eslint \"src/**/*.{ts,tsx,js}\" ",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx,js}\" --fix"
   },
   "dependencies": {
     "aws-lambda": "^1.0.7",
@@ -30,7 +32,13 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.7.9",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
     "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.7.4",
     "serverless": "^3.40.0",
     "serverless-esbuild": "^1.56.1",
     "serverless-offline": "^12.0.4",
