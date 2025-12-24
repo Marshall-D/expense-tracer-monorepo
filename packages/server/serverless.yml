@@ -78,3 +78,9 @@ functions:
       - httpApi:
           path: /api/expenses/{id}
           method: delete
+  getExpense:
+    handler: src/handlers/getExpense.handler
+    events:
+      - httpApi:
+          path: /api/expenses/{id}
+          method: get

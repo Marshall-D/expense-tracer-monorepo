@@ -12,6 +12,7 @@ import { handler as createExpenseHandler } from "./handlers/createExpenses"; // 
 import { handler as getAllExpensesHandler } from "./handlers/getAllExpenses";
 import { handler as updateExpensesHandler } from "./handlers/updateExpenses";
 import { handler as deleteExpenseHandler } from "./handlers/deleteExpense";
+import { handler as getExpenseHandler } from "./handlers/getExpense";
 
 const app = express();
 app.use(bodyParser.json());
@@ -175,6 +176,24 @@ app.delete("/api/expenses/:id", async (req, res) => {
     return sendApiResponse(res, result);
   } catch (err) {
     console.error("local-dev expenses.delete handler error", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/expenses/:id (get single expense)
+app.get("/api/expenses/:id", async (req, res) => {
+  try {
+    const event = toApiGatewayEvent(req);
+    // attach pathParameters from express params
+    (event as any).pathParameters = req.params || {};
+    const result = (await getExpenseHandler(
+      event as any,
+      {} as any,
+      () => null
+    )) as APIGatewayProxyResult | void;
+    return sendApiResponse(res, result);
+  } catch (err) {
+    console.error("local-dev expenses.get handler error", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
