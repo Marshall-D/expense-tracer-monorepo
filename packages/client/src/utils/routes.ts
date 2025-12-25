@@ -1,3 +1,4 @@
+// packages/client/src/utils/routes.ts
 const ROUTES = {
   // Home
   HOME: "/",
@@ -5,6 +6,9 @@ const ROUTES = {
   // Authentication
   LOGIN: "/login",
   REGISTER: "/register",
+
+  // App
+  DASHBOARD: "/dashboard",
 };
 
 export default ROUTES;
