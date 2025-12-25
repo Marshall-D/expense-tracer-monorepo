@@ -42,10 +42,10 @@ export default function App() {
 
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 20 }}>
-      <h1>Expense tracker — smoke test</h1>
-      <p>
+      <h1 className="text-sm font-bold">Expense tracker — smoke test</h1>
+      <p className="text-blue-600">
         API health: <strong>{status}</strong>
-      </p>
+      </p>{" "}
     </main>
   );
 }
