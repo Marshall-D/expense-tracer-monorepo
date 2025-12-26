@@ -232,22 +232,3 @@ export default function DashboardLayout(): JSX.Element {
     </div>
   );
 }
-
-//logout mobile
-
-// <div className="mt-6 border-t border-border/40 pt-4">
-//   <Button
-//     variant="ghost"
-//     className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-//     onClick={() => {
-//       setOpen(false);
-//       // TODO: clear auth state / token here if needed
-//     }}
-//     asChild
-//   >
-//     <Link to="/login">
-//       <LogOut className="h-4 w-4" />
-//       Logout
-//     </Link>
-//   </Button>
-// </div>
