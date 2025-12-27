@@ -10,6 +10,11 @@ applications:
         build:
           commands:
             - pnpm --filter client run build
+        postBuild:
+          commands:
+            - echo "Build complete. Listing dist:"
+            - ls -la packages/client/dist || true
+            - du -sh packages/client/dist || true
       artifacts:
         baseDirectory: packages/client/dist
         files:
