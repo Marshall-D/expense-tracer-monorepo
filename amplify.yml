@@ -16,7 +16,7 @@ applications:
             - ls -la packages/client/dist || true
             - du -sh packages/client/dist || true
       artifacts:
-        baseDirectory: packages/client/dist
+        baseDirectory: dist
         files:
           - "**/*"
       cache:
