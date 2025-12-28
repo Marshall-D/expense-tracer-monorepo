@@ -1,18 +1,27 @@
 // packages/client/src/components/ProtectedRoute.tsx
+
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/authProvider";
 import ROUTES from "@/utils/routes";
 
+/**
+ * Protects children routes from unauthenticated access.
+ * - Accepts ReactNode (more flexible than ReactElement).
+ * - Stores the attempted location in navigation state so you can redirect back after login if desired.
+ */
 export default function ProtectedRoute({
   children,
 }: {
-  children: React.ReactElement;
+  children: React.ReactNode;
 }) {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
+  // If not authenticated, redirect to login and preserve attempted URL in state
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} replace />;
+    return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />;
   }
-  return children;
+
+  return <>{children}</>;
 }

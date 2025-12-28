@@ -1,4 +1,5 @@
 // packages/client/src/lib/api.ts
+
 import axios from "axios";
 import { getToken, removeToken, removeUser } from "./storage";
 import ROUTES from "@/utils/routes";
@@ -33,11 +34,15 @@ api.interceptors.response.use(
       // clear local auth state — AuthProvider will rehydrate from storage on next load
       removeToken();
       removeUser();
-      // navigate to login page (hard redirect so the app resets)
+      // navigate to login page (hard redirect so the app resets). Use replace to prevent back-nav showing protected page.
       try {
-        window.location.href = ROUTES.LOGIN;
+        window.location.replace(ROUTES.LOGIN);
       } catch {
-        // ignore
+        try {
+          window.location.href = ROUTES.LOGIN;
+        } catch {
+          // ignore
+        }
       }
     }
     return Promise.reject(err);

@@ -1,3 +1,5 @@
+// packages/client/src/context/authProvider.tsx
+
 import React, {
   createContext,
   useContext,
@@ -35,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const qc = useQueryClient();
 
   useEffect(() => {
-    // when token/user changed in localStorage externally, rehydrate (other tabs)
+    // when token/user changed in localStorage externally (other tabs), rehydrate
     const onStorage = () => {
       setUserState(getUser());
       setTokenState(getToken());
@@ -58,7 +60,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // prime the "me" cache for convenience
-    qc.setQueryData(queryKeys.me, u);
+    try {
+      qc.setQueryData(queryKeys.me, u);
+    } catch {
+      // ignore
+    }
 
     // invalidate auth-protected lists so they refetch under new user
     try {
@@ -66,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets });
       qc.invalidateQueries({ queryKey: queryKeys.categories });
     } catch {
-      // ignore; fail safe
+      // fail-safe
     }
   };
 
@@ -95,16 +101,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       /* ignore */
     }
 
-    // hard redirect to login so app resets to public state
-    // use window.location.assign to make it clear in logs too
-    window.location.assign(ROUTES.LOGIN);
+    // hard redirect to login so app resets to public state.
+    // Use replace() so the protected page is removed from history (prevents back-button revealing cached UI).
+    try {
+      window.location.replace(ROUTES.LOGIN);
+    } catch {
+      window.location.assign(ROUTES.LOGIN);
+    }
   };
 
   const value = useMemo(
     () => ({
       user,
       token,
-      isAuthenticated: !!token,
+      // explicit boolean (true only when token present)
+      isAuthenticated: Boolean(token),
       setAuth,
       logout,
     }),

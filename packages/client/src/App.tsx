@@ -1,4 +1,5 @@
 // packages/client/src/App.tsx
+
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import ROUTES from "@/utils/routes";
@@ -15,6 +16,7 @@ import ReportsPage from "@/pages/reports";
 import ExpenseEditorPage from "./pages/expenses/expenseEditorPage";
 import BudgetEditorPage from "./pages/budgets/budgetEditorPage";
 import CategoryEditorPage from "./pages/categories/categoryEditorPage";
+import ProtectedRoute from "@/components/protectedRoute";
 
 export default function App() {
   return (
@@ -23,7 +25,15 @@ export default function App() {
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
 
-      <Route path={ROUTES.DASHBOARD} element={<DashboardLayout />}>
+      {/* Protect the entire dashboard subtree so every /dashboard/* route requires auth */}
+      <Route
+        path={ROUTES.DASHBOARD}
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
 
         {/* Expenses */}
