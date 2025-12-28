@@ -1,7 +1,7 @@
 // packages/client/src/pages/budgets/BudgetEditorPage.tsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import BudgetForm from "./budgetForm"; // <-- corrected import to match file name
+import BudgetForm from "./budgetForm";
 import ROUTES from "@/utils/routes";
 import type { Budget } from "@/types";
 import { Button } from "@/components/ui/button";
