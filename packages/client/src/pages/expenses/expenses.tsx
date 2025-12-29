@@ -25,11 +25,8 @@ import {
 import ROUTES from "@/utils/routes";
 import { useExpenses, useDeleteExpense } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
-import { useMedia } from "react-use";
 
-/**
- * Debounce hook
- */
+/** Small debounce hook used for search input */
 function useDebouncedValue<T>(value: T, delayMs = 300) {
   const [debounced, setDebounced] = useState<T>(value);
   useEffect(() => {
@@ -39,10 +36,22 @@ function useDebouncedValue<T>(value: T, delayMs = 300) {
   return debounced;
 }
 
-/**
- * Simple slide-in drawer / modal for mobile/tablet.
- * Controlled by `open` boolean and `onClose`.
- */
+/** Small media query hook — avoids adding react-use dependency */
+function useMediaQuery(query: string) {
+  const getMatches = () =>
+    typeof window !== "undefined" ? window.matchMedia(query).matches : false;
+  const [matches, setMatches] = useState<boolean>(getMatches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const handler = () => setMatches(mq.matches);
+    handler();
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [query]);
+  return matches;
+}
+
+/** Simple slide drawer (mobile) */
 function SlideDrawer({
   open,
   onClose,
@@ -52,7 +61,6 @@ function SlideDrawer({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  // small screens treat it as full screen modal; larger tablets as right-side drawer
   return (
     <div
       aria-hidden={!open}
@@ -60,18 +68,15 @@ function SlideDrawer({
         open ? "pointer-events-auto" : "pointer-events-none"
       }`}
     >
-      {/* backdrop */}
       <div
         className={`absolute inset-0 bg-black/40 transition-opacity ${
           open ? "opacity-100" : "opacity-0"
         }`}
         onClick={onClose}
       />
-
-      {/* panel */}
       <div
-        role="dialog"
         aria-modal="true"
+        role="dialog"
         className={`absolute right-0 top-0 bottom-0 w-full sm:w-[520px] md:w-[420px] lg:hidden bg-card/90 backdrop-blur-md transform transition-transform ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
@@ -91,9 +96,10 @@ export default function ExpensesPageWrapper() {
 }
 
 function ExpensesContent() {
+  // URL state
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // initial values from URL (applied)
+  // initial values from URL (applied filters)
   const initialQ = searchParams.get("q") || "";
   const initialCategoryIds = (searchParams.get("categoryIds") || "")
     .split(",")
@@ -101,24 +107,26 @@ function ExpensesContent() {
   const initialFrom = searchParams.get("from") || "";
   const initialTo = searchParams.get("to") || "";
 
-  // search input (debounced)
+  // search
   const [searchTerm, setSearchTerm] = useState(initialQ);
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
 
-  // categories list
+  // categories
   const { data: categories = [] } = useCategories(true);
 
-  // Panel / drawer open states
-  const isDesktop = useMedia("(min-width: 1024px)");
+  // responsiveness
+  const isDesktop = useMediaQuery("(min-width: 1024px)"); // lg breakpoint in tailwind
+
+  // drawer open (mobile/tablet)
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Working (unapplied) filters — what user edits in the panel
+  // working filters (user edits)
   const [workingCategoryIds, setWorkingCategoryIds] =
     useState<string[]>(initialCategoryIds);
   const [workingFrom, setWorkingFrom] = useState(initialFrom);
   const [workingTo, setWorkingTo] = useState(initialTo);
 
-  // Applied filters (used in query)
+  // applied filters (actually used to query)
   const [appliedCategoryIds, setAppliedCategoryIds] =
     useState<string[]>(initialCategoryIds);
   const [appliedFrom, setAppliedFrom] = useState<string | undefined>(
@@ -128,17 +136,17 @@ function ExpensesContent() {
     initialTo || undefined
   );
 
-  // keep local searchTerm in sync when URL provided externally
+  // keep searchTerm in sync if URL changed externally
   useEffect(() => {
     setSearchTerm(initialQ);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Date validation
+  // date validation
   const dateRangeInvalid =
     Boolean(workingFrom && workingTo) && workingFrom > workingTo;
 
-  // Prepare params object for react-query hook
+  // build query params for useExpenses
   const params = useMemo(() => {
     const p: Record<string, any> = {
       q: debouncedSearchTerm || undefined,
@@ -147,7 +155,6 @@ function ExpensesContent() {
       limit: 50,
     };
     if (appliedCategoryIds && appliedCategoryIds.length > 0) {
-      // server expects comma-separated categoryIds param (we added server support for categoryIds)
       p.categoryIds = appliedCategoryIds.join(",");
     }
     return p;
@@ -157,7 +164,7 @@ function ExpensesContent() {
   const deleteMutation = useDeleteExpense();
   const isDeleting = deleteMutation.status === "pending";
 
-  // keep url in sync with applied filters + debounced q
+  // push applied filters + q into URL (shareable)
   useEffect(() => {
     const qs = new URLSearchParams();
     if (debouncedSearchTerm) qs.set("q", debouncedSearchTerm);
@@ -169,12 +176,11 @@ function ExpensesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, appliedCategoryIds, appliedFrom, appliedTo]);
 
-  // category checkbox toggler
-  const toggleCategory = (id: string) => {
+  // helpers
+  const toggleCategory = (id: string) =>
     setWorkingCategoryIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  };
 
   const handleApply = () => {
     if (dateRangeInvalid) return;
@@ -203,7 +209,7 @@ function ExpensesContent() {
     }
   };
 
-  // Panel content (reused between desktop right column and mobile drawer)
+  // Filter panel markup (re-used for desktop aside and mobile drawer)
   const FilterPanel = (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
@@ -219,7 +225,6 @@ function ExpensesContent() {
         )}
       </div>
 
-      {/* Categories multi-select */}
       <div className="mb-4">
         <div className="text-sm font-medium mb-2">Categories</div>
         <div className="flex flex-col max-h-48 overflow-auto pr-2">
@@ -247,7 +252,6 @@ function ExpensesContent() {
         </div>
       </div>
 
-      {/* Date range */}
       <div className="mb-4">
         <div className="text-sm font-medium mb-2">Date range</div>
         <div className="grid grid-cols-2 gap-2">
@@ -288,6 +292,7 @@ function ExpensesContent() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* HEADER: Title & actions */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
@@ -296,59 +301,72 @@ function ExpensesContent() {
           </p>
         </div>
 
-        <div className="flex gap-2 items-center">
-          <div className="relative w-full sm:w-80 lg:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search description or category..."
-              className="pl-9 bg-background/50"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* On desktop, keep a small filter button (toggles drawer on smaller screens).
-              On large screens we still show the big right panel; the button also focuses panel */}
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="rounded-full gap-2"
+            className="rounded-full gap-2 bg-transparent"
             onClick={() => {
-              if (isDesktop) {
-                // On desktop focus the filter area by opening nothing; we could toggle a highlight
-                // For simplicity, open drawer for a11y/keyboard users as well
-                setDrawerOpen((s) => !s);
-              } else {
-                setDrawerOpen(true);
-              }
-            }}
-            aria-expanded={drawerOpen}
-            aria-controls="expenses-filter-panel"
-          >
-            <Filter className="h-4 w-4" /> Filters
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full gap-2"
-            onClick={() => {
-              /* TODO: export CSV */
+              // TODO: export CSV
             }}
           >
-            <Download className="h-4 w-4" /> Export
+            <Download className="h-4 w-4" /> Export CSV
           </Button>
 
           <Button asChild size="sm" className="rounded-full gap-2">
             <Link to={ROUTES.EXPENSES_NEW}>
-              <Plus className="h-4 w-4" /> Add
+              <Plus className="h-4 w-4" /> Add New
             </Link>
           </Button>
         </div>
       </div>
 
+      {/* SEARCH + FILTER ROW */}
+      <div className="w-full">
+        {/* For large screens: show single search bar full width (filter panel visible on right) */}
+        {isDesktop ? (
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search description or category..."
+              className="pl-9 bg-background/50 w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        ) : (
+          // For mobile/tablet: search and filter button share equal width
+          <div className="grid grid-cols-2 gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                className="pl-9 bg-background/50"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-10 rounded-md flex items-center justify-center gap-2"
+                onClick={() => setDrawerOpen(true)}
+                aria-expanded={drawerOpen}
+                aria-controls="expenses-filter-panel"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filters</span>
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MAIN GRID: left = table, right = persistent filter (desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-6">
-        {/* Main content */}
+        {/* LEFT: main table */}
         <Card className="border-border/40 bg-card/40">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -445,20 +463,25 @@ function ExpensesContent() {
           </CardContent>
         </Card>
 
-        {/* Right-hand persistent panel for desktop */}
+        {/* RIGHT: persistent filter panel on desktop */}
         {isDesktop ? (
-          <aside id="expenses-filter-panel" className="sticky top-24 h-[70vh]">
+          <aside
+            id="expenses-filter-panel"
+            className="sticky top-24 h-[70vh] overflow-y-auto"
+          >
             <div className="p-4 bg-card/40 border border-border/30 rounded-md h-full">
               {FilterPanel}
             </div>
           </aside>
-        ) : (
-          // Drawer for mobile/tablet
-          <SlideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-            <div id="expenses-filter-panel">{FilterPanel}</div>
-          </SlideDrawer>
-        )}
+        ) : null}
       </div>
+
+      {/* Mobile/Tablet Drawer */}
+      {!isDesktop && (
+        <SlideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+          <div id="expenses-filter-panel">{FilterPanel}</div>
+        </SlideDrawer>
+      )}
     </div>
   );
 }
