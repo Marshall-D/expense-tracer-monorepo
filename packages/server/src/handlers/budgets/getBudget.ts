@@ -1,13 +1,12 @@
-// packages/server/src/handlers/getExpense.ts
+// packages/server/src/handlers/getBudget.ts
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { requireAuth } from "../lib/requireAuth";
-import { jsonResponse } from "../lib/validation";
-import { getDb } from "../lib/mongo";
+import { requireAuth } from "../../lib/requireAuth";
+import { jsonResponse } from "../../lib/validation";
+import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
-const getExpenseImpl: APIGatewayProxyHandler = async (event) => {
+const getBudgetImpl: APIGatewayProxyHandler = async (event) => {
   if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
-
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
@@ -16,61 +15,56 @@ const getExpenseImpl: APIGatewayProxyHandler = async (event) => {
     string | undefined
   >;
   const id = pathParams.id || pathParams.ID || pathParams._id;
-  if (!id) {
+  if (!id)
     return jsonResponse(400, {
       error: "missing_id",
-      message: "Expense id is required in path.",
+      message: "Budget id is required",
     });
-  }
 
-  let expenseObjectId: ObjectId;
+  let bid: ObjectId;
   try {
-    expenseObjectId = new ObjectId(id);
+    bid = new ObjectId(id);
   } catch {
     return jsonResponse(400, {
       error: "invalid_id",
-      message: "Expense id is not a valid ObjectId.",
+      message: "Budget id is not a valid ObjectId.",
     });
   }
 
   const db = await getDb();
-  if (!db) {
+  if (!db)
     return jsonResponse(503, {
       error: "database_unavailable",
       message: "No database configured.",
     });
-  }
 
   try {
-    const expenses = db.collection("expenses");
-    const doc = await expenses.findOne({
-      _id: expenseObjectId,
+    const budgets = db.collection("budgets");
+    const doc = await budgets.findOne({
+      _id: bid,
       userId: new ObjectId(userId),
     });
-
-    if (!doc) {
+    if (!doc)
       return jsonResponse(404, {
         error: "not_found",
-        message: "Expense not found.",
+        message: "Budget not found.",
       });
-    }
 
     const payload = {
       id: String(doc._id),
       userId: doc.userId ? String(doc.userId) : null,
-      amount: doc.amount,
-      currency: doc.currency,
-      description: doc.description,
       category: doc.category,
       categoryId: doc.categoryId ? String(doc.categoryId) : null,
-      date: doc.date ? new Date(doc.date).toISOString() : null,
+      periodStart: doc.periodStart
+        ? new Date(doc.periodStart).toISOString()
+        : null,
+      amount: doc.amount,
       createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
       updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : null,
     };
-
     return jsonResponse(200, { data: payload });
   } catch (err) {
-    console.error("getExpense error:", err);
+    console.error("getBudget error:", err);
     return jsonResponse(500, {
       error: "server_error",
       message: "Internal server error",
@@ -78,4 +72,4 @@ const getExpenseImpl: APIGatewayProxyHandler = async (event) => {
   }
 };
 
-export const handler = requireAuth(getExpenseImpl);
+export const handler = requireAuth(getBudgetImpl);

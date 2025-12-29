@@ -1,8 +1,8 @@
 // packages/server/src/handlers/getAllBudgets.ts
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { requireAuth } from "../lib/requireAuth";
-import { jsonResponse } from "../lib/validation";
-import { getDb } from "../lib/mongo";
+import { requireAuth } from "../../lib/requireAuth";
+import { jsonResponse } from "../../lib/validation";
+import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 

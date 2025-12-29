@@ -21,6 +21,9 @@ provider:
       allowedMethods:
         - GET
         - POST
+        - PUT
+        - PATCH
+        - DELETE
         - OPTIONS
 
 plugins:
@@ -54,120 +57,120 @@ functions:
           path: /api/auth/login
           method: post
   createExpense:
-    handler: src/handlers/createExpenses.handler
+    handler: src/handlers/expenses/createExpenses.handler
     events:
       - httpApi:
           path: /api/expenses
           method: post
   getAllExpenses:
-    handler: src/handlers/getAllExpenses.handler
+    handler: src/handlers/expenses/getAllExpenses.handler
     events:
       - httpApi:
           path: /api/expenses
           method: get
   updateExpenses:
-    handler: src/handlers/updateExpenses.handler
+    handler: src/handlers/expenses/updateExpenses.handler
     events:
       - httpApi:
           path: /api/expenses/{id}
           method: put
 
   deleteExpense:
-    handler: src/handlers/deleteExpense.handler
+    handler: src/handlers/expenses/deleteExpense.handler
     events:
       - httpApi:
           path: /api/expenses/{id}
           method: delete
   getExpense:
-    handler: src/handlers/getExpense.handler
+    handler: src/handlers/expenses/getExpense.handler
     events:
       - httpApi:
           path: /api/expenses/{id}
           method: get
 
   createCategory:
-    handler: src/handlers/createCategories.handler
+    handler: src/handlers/categories/createCategories.handler
     events:
       - httpApi:
           path: /api/categories
           method: post
 
   getAllCategories:
-    handler: src/handlers/getAllCategories.handler
+    handler: src/handlers/categories/getAllCategories.handler
     events:
       - httpApi:
           path: /api/categories
           method: get
   getCategory:
-    handler: src/handlers/getCategory.handler
+    handler: src/handlers/categories/getCategory.handler
     events:
       - httpApi:
           path: /api/categories/{id}
           method: get
 
   updateCategory:
-    handler: src/handlers/updateCategories.handler
+    handler: src/handlers/categories/updateCategories.handler
     events:
       - httpApi:
           path: /api/categories/{id}
           method: put
 
   deleteCategory:
-    handler: src/handlers/deleteCategory.handler
+    handler: src/handlers/categories/deleteCategory.handler
     events:
       - httpApi:
           path: /api/categories/{id}
           method: delete
   createBudget:
-    handler: src/handlers/createBudget.handler
+    handler: src/handlers/budgets/createBudget.handler
     events:
       - httpApi:
           path: /api/budgets
           method: post
   getAllBudgets:
-    handler: src/handlers/getAllBudgets.handler
+    handler: src/handlers/budgets/getAllBudgets.handler
     events:
       - httpApi:
           path: /api/budgets
           method: get
   getBudget:
-    handler: src/handlers/getBudget.handler
+    handler: src/handlers/budgets/getBudget.handler
     events:
       - httpApi:
           path: /api/budgets/{id}
           method: get
   updateBudget:
-    handler: src/handlers/updateBudget.handler
+    handler: src/handlers/budgets/updateBudget.handler
     events:
       - httpApi:
           path: /api/budgets/{id}
           method: put
   deleteBudget:
-    handler: src/handlers/deleteBudget.handler
+    handler: src/handlers/budgets/deleteBudget.handler
     events:
       - httpApi:
           path: /api/budgets/{id}
           method: delete
   reportsMonthly:
-    handler: src/handlers/monthlyReports.handler
+    handler: src/handlers/reports/monthlyReports.handler
     events:
       - httpApi:
           path: /api/reports/monthly
           method: get
   reportsByCategory:
-    handler: src/handlers/categoryReports.handler
+    handler: src/handlers/reports/categoryReports.handler
     events:
       - httpApi:
           path: /api/reports/by-category
           method: get
   reportsTrends:
-    handler: src/handlers/trendReports.handler
+    handler: src/handlers/reports/trendReports.handler
     events:
       - httpApi:
           path: /api/reports/trends
           method: get
   expensesExport:
-    handler: src/handlers/expensesReport.handler
+    handler: src/handlers/reports/expensesReport.handler
     events:
       - httpApi:
           path: /api/expenses/export

@@ -1,10 +1,10 @@
 // packages/server/src/handlers/updateExpenses.ts
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { requireAuth } from "../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../lib/validation";
-import { getDb } from "../lib/mongo";
+import { requireAuth } from "../../lib/requireAuth";
+import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
-import { updateExpenseSchema } from "../lib/validators";
+import { updateExpenseSchema } from "../../lib/validators";
 
 /**
  * PUT /api/expenses/{id}

@@ -1,9 +1,9 @@
 // packages/server/src/handlers/updateCategories.ts
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { requireAuth } from "../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../lib/validation";
-import { updateCategorySchema } from "../lib/validators";
-import { getDb } from "../lib/mongo";
+import { requireAuth } from "../../lib/requireAuth";
+import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { updateCategorySchema } from "../../lib/validators";
+import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const updateCategoriesImpl: APIGatewayProxyHandler = async (event) => {

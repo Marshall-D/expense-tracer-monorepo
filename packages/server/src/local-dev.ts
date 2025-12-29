@@ -1,32 +1,37 @@
-// packages/server/src/local-dev.ts
 import "dotenv/config";
 import type { APIGatewayProxyResult } from "aws-lambda";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 
-// import handlers (ensure these files exist)
 import { handler as healthHandler } from "./handlers/health";
 import { register as authRegister, login } from "./handlers/auth";
-import { handler as createExpenseHandler } from "./handlers/createExpenses"; // <-- new import
-import { handler as getAllExpensesHandler } from "./handlers/getAllExpenses";
-import { handler as updateExpensesHandler } from "./handlers/updateExpenses";
-import { handler as deleteExpenseHandler } from "./handlers/deleteExpense";
-import { handler as getExpenseHandler } from "./handlers/getExpense";
-import { handler as createCategoryHandler } from "./handlers/createCategories";
-import { handler as getAllCategoriesHandler } from "./handlers/getAllCategories";
-import { handler as getCategoryHandler } from "./handlers/getCategory";
-import { handler as updateCategoriesHandler } from "./handlers/updateCategories";
-import { handler as deleteCategoryHandler } from "./handlers/deleteCategory";
-import { handler as createBudgetHandler } from "./handlers/createBudget";
-import { handler as getAllBudgetsHandler } from "./handlers/getAllBudgets";
-import { handler as getBudgetHandler } from "./handlers/getBudget";
-import { handler as updateBudgetHandler } from "./handlers/updateBudget";
-import { handler as deleteBudgetHandler } from "./handlers/deleteBudget";
-import { handler as reportsMonthlyHandler } from "./handlers/monthlyReports";
-import { handler as reportsByCategoryHandler } from "./handlers/categoryReports";
-import { handler as reportsTrendsHandler } from "./handlers/trendReports";
-import { handler as expensesExportHandler } from "./handlers/expensesReport";
+// Expenses
+import { handler as createExpenseHandler } from "./handlers/expenses/createExpenses";
+import { handler as getAllExpensesHandler } from "./handlers/expenses/getAllExpenses";
+import { handler as getExpenseHandler } from "./handlers/expenses/getExpense";
+import { handler as updateExpensesHandler } from "./handlers/expenses/updateExpenses";
+import { handler as deleteExpenseHandler } from "./handlers/expenses/deleteExpense";
+
+// Categories
+import { handler as createCategoryHandler } from "./handlers/categories/createCategories";
+import { handler as getAllCategoriesHandler } from "./handlers/categories/getAllCategories";
+import { handler as getCategoryHandler } from "./handlers/categories/getCategory";
+import { handler as updateCategoriesHandler } from "./handlers/categories/updateCategories";
+import { handler as deleteCategoryHandler } from "./handlers/categories/deleteCategory";
+
+// Budgets
+import { handler as createBudgetHandler } from "./handlers/budgets/createBudget";
+import { handler as getAllBudgetsHandler } from "./handlers/budgets/getAllBudgets";
+import { handler as getBudgetHandler } from "./handlers/budgets/getBudget";
+import { handler as updateBudgetHandler } from "./handlers/budgets/updateBudget";
+import { handler as deleteBudgetHandler } from "./handlers/budgets/deleteBudget";
+
+// Reports
+import { handler as reportsMonthlyHandler } from "./handlers/reports/monthlyReports";
+import { handler as reportsByCategoryHandler } from "./handlers/reports/categoryReports";
+import { handler as reportsTrendsHandler } from "./handlers/reports/trendReports";
+import { handler as expensesExportHandler } from "./handlers/reports/expensesReport";
 
 const app = express();
 app.use(bodyParser.json());
@@ -34,9 +39,10 @@ app.use(cors()); // allow CORS for local dev
 
 const CORS_HEADERS = {
   "Content-Type": "application/json",
+  // allow all local dev origins — matches serverless CORS config
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
 // helper: convert express request -> APIGateway event-like object
@@ -159,10 +165,7 @@ app.get("/api/expenses", async (req, res) => {
 // PUT /api/expenses/:id (update)
 app.put("/api/expenses/:id", async (req, res) => {
   try {
-    // include body + path params when building APIGateway-like event
     const event = toApiGatewayEvent(req);
-    // express path param is in req.params; toApiGatewayEvent currently doesn't attach pathParameters,
-    // so add them manually to the event object:
     (event as any).pathParameters = req.params || {};
     const result = (await updateExpensesHandler(
       event as any,
@@ -180,7 +183,6 @@ app.put("/api/expenses/:id", async (req, res) => {
 app.delete("/api/expenses/:id", async (req, res) => {
   try {
     const event = toApiGatewayEvent(req);
-    // attach pathParameters (toApiGatewayEvent doesn't currently do this)
     (event as any).pathParameters = req.params || {};
     const result = (await deleteExpenseHandler(
       event as any,
@@ -198,7 +200,6 @@ app.delete("/api/expenses/:id", async (req, res) => {
 app.get("/api/expenses/:id", async (req, res) => {
   try {
     const event = toApiGatewayEvent(req);
-    // attach pathParameters from express params
     (event as any).pathParameters = req.params || {};
     const result = (await getExpenseHandler(
       event as any,

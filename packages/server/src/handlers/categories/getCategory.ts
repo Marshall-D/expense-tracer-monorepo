@@ -1,12 +1,13 @@
-// packages/server/src/handlers/deleteBudget.ts
+// packages/server/src/handlers/getCategory.ts
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { requireAuth } from "../lib/requireAuth";
-import { jsonResponse } from "../lib/validation";
-import { getDb } from "../lib/mongo";
+import { requireAuth } from "../../lib/requireAuth";
+import { jsonResponse } from "../../lib/validation";
+import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
-const deleteBudgetImpl: APIGatewayProxyHandler = async (event) => {
+const getCategoryImpl: APIGatewayProxyHandler = async (event) => {
   if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
@@ -18,16 +19,16 @@ const deleteBudgetImpl: APIGatewayProxyHandler = async (event) => {
   if (!id)
     return jsonResponse(400, {
       error: "missing_id",
-      message: "Budget id is required",
+      message: "Category id is required in path.",
     });
 
-  let bid: ObjectId;
+  let catId: ObjectId;
   try {
-    bid = new ObjectId(id);
+    catId = new ObjectId(id);
   } catch {
     return jsonResponse(400, {
       error: "invalid_id",
-      message: "Budget id is not a valid ObjectId.",
+      message: "Category id is not a valid ObjectId.",
     });
   }
 
@@ -39,19 +40,27 @@ const deleteBudgetImpl: APIGatewayProxyHandler = async (event) => {
     });
 
   try {
-    const budgets = db.collection("budgets");
-    const result = await budgets.deleteOne({
-      _id: bid,
-      userId: new ObjectId(userId),
+    const categories = db.collection("categories");
+    const doc = await categories.findOne({
+      _id: catId,
+      $or: [{ userId: null }, { userId: new ObjectId(userId) }],
     });
-    if (result.deletedCount === 0)
+    if (!doc)
       return jsonResponse(404, {
         error: "not_found",
-        message: "Budget not found.",
+        message: "Category not found.",
       });
-    return jsonResponse(200, { success: true });
+
+    return jsonResponse(200, {
+      data: {
+        id: String(doc._id),
+        name: doc.name,
+        color: doc.color ?? null,
+        userId: doc.userId ? String(doc.userId) : null,
+      },
+    });
   } catch (err) {
-    console.error("deleteBudget error:", err);
+    console.error("getCategory error:", err);
     return jsonResponse(500, {
       error: "server_error",
       message: "Internal server error",
@@ -59,4 +68,4 @@ const deleteBudgetImpl: APIGatewayProxyHandler = async (event) => {
   }
 };
 
-export const handler = requireAuth(deleteBudgetImpl);
+export const handler = requireAuth(getCategoryImpl);

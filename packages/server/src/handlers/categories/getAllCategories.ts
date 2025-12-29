@@ -1,8 +1,8 @@
 // packages/server/src/handlers/getAllCategories.ts
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { requireAuth } from "../lib/requireAuth";
-import { jsonResponse } from "../lib/validation";
-import { getDb } from "../lib/mongo";
+import { requireAuth } from "../../lib/requireAuth";
+import { jsonResponse } from "../../lib/validation";
+import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const getAllCategoriesImpl: APIGatewayProxyHandler = async (event) => {
