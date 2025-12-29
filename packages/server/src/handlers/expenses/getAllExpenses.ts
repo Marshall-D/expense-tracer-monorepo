@@ -1,5 +1,4 @@
 // packages/server/src/handlers/getAllExpenses.ts
-
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
 import { jsonResponse } from "../../lib/validation";
@@ -23,15 +22,27 @@ const getAllExpensesQuerySchema = z.object({
     .refine((s) => !s || !Number.isNaN(Date.parse(s)), {
       message: "invalid to date",
     }),
-  // exact category name match
+  // exact category name match (legacy single)
   category: z.string().min(1).optional(),
-  // categoryId must be a 24 hex char string
+  // categoryId single (legacy)
   categoryId: z
     .string()
     .optional()
     .refine((s) => !s || /^[0-9a-fA-F]{24}$/.test(s), {
       message: "invalid categoryId",
     }),
+  // new: multiple category ids as comma-separated list
+  categoryIds: z
+    .string()
+    .optional()
+    .refine(
+      (s) => {
+        if (!s) return true;
+        const parts = s.split(",").filter(Boolean);
+        return parts.every((p) => /^[0-9a-fA-F]{24}$/.test(p));
+      },
+      { message: "invalid categoryIds" }
+    ),
   q: z.string().optional(), // search query (description OR category)
   limit: z
     .union([z.string(), z.number()])
@@ -83,6 +94,7 @@ const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
     to,
     category,
     categoryId,
+    categoryIds,
     q,
     limit: maybeLimit,
     page: maybePage,
@@ -106,8 +118,11 @@ const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
     // base filter: only this user's expenses
     const filter: any = { userId: new ObjectId(userId) };
 
-    // category/categoryId exact filters (if provided)
-    if (categoryId) {
+    // handle multiple categoryIds if provided (highest precedence)
+    if (categoryIds) {
+      const parts = categoryIds.split(",").filter(Boolean);
+      filter.categoryId = { $in: parts.map((p) => new ObjectId(p)) };
+    } else if (categoryId) {
       filter.categoryId = new ObjectId(categoryId);
     } else if (category) {
       filter.category = category;
@@ -125,13 +140,12 @@ const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
       const term = q.trim();
       const regex = new RegExp(escapeRegex(term), "i");
 
-      // If category/categoryId provided, we already filter by category; in that case
+      // If category/categoryId(s) provided, we already filter by category; in that case
       // apply the search to description only (i.e., both category AND description must match)
-      if (category || categoryId) {
+      if (category || categoryId || categoryIds) {
         filter.description = { $regex: regex };
       } else {
         // No explicit category filter: search description OR category fields
-        // Combine with existing filter (userId etc.)
         filter.$or = [
           { description: { $regex: regex } },
           { category: { $regex: regex } },
