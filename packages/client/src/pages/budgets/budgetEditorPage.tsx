@@ -1,8 +1,6 @@
 // packages/client/src/pages/budgets/BudgetEditorPage.tsx
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import BudgetForm from "./budgetForm";
 import ROUTES from "@/utils/routes";
 import type { Budget } from "@/types/budget";
 import { Button } from "@/components/ui/button";
@@ -12,80 +10,111 @@ import {
   useUpdateBudget,
   useDeleteBudget,
 } from "@/hooks/useBudgets";
+import BudgetForm from "./budgetForm";
 
 export default function BudgetEditorPage(): JSX.Element {
   const { id } = useParams(); // id comes from route /dashboard/budgets/:id
   const isNew = !id;
   const navigate = useNavigate();
 
-  const { data: fetchedBudget, isLoading: fetching } = useBudget(id);
+  const budgetQuery = useBudget(id);
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
   const deleteMutation = useDeleteBudget();
 
-  const [initial, setInitial] = useState<Partial<Budget> | undefined>(
-    undefined
-  );
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // loading follows same logic as ExpenseEditorPage: only loading when editing
+  const loading = isNew ? false : budgetQuery.isLoading;
+
+  // derive booleans using status (type-safe)
+  const isCreating = createMutation.status === "pending";
+  const isUpdating = updateMutation.status === "pending";
+  const isDeleting = deleteMutation.status === "pending";
+
+  // map fetched budget to initial form shape (Partial<Budget>)
+  const initial = useMemo<Partial<Budget> | undefined>(() => {
+    if (!budgetQuery.data) return undefined;
+    const b = budgetQuery.data;
+    return {
+      id: b.id,
+      categoryId: b.categoryId ?? "",
+      amount: b.amount,
+      periodStart: b.periodStart ?? undefined,
+      category: b.category ?? undefined,
+    } as Partial<Budget>;
+  }, [budgetQuery.data]);
+
   useEffect(() => {
-    if (!id) {
-      setInitial(undefined);
-      return;
+    if (!isNew && budgetQuery.isError) {
+      setError("Failed to load budget.");
     }
-    if (fetchedBudget) {
-      // map server payload to form initial
-      const e = fetchedBudget;
-      setInitial({
-        id: e.id,
-        categoryId: e.categoryId ?? "",
-        amount: e.amount,
-        // periodStart should be YYYY-MM or ISO; form will convert if present
-        periodStart: e.periodStart ?? undefined,
-      } as any);
-    }
-  }, [id, fetchedBudget]);
+  }, [isNew, budgetQuery.isError]);
 
   const handleSubmit = async (payload: Budget) => {
     setError(null);
-    setSaving(true);
     try {
       if (isNew) {
-        // create expects periodStart, amount, optional categoryId/category
-        await createMutation.mutateAsync({
-          categoryId: payload.categoryId ?? undefined,
-          periodStart: payload.periodStart as unknown as string,
+        // build create payload matching service type
+        const createPayload: any = {
           amount: payload.amount,
-        });
+          periodStart: payload.periodStart as unknown as string,
+        };
+        if (payload.categoryId !== undefined && payload.categoryId !== "") {
+          createPayload.categoryId = payload.categoryId;
+        } else if (payload.category) {
+          // allow creating with a category name fallback
+          createPayload.category = payload.category;
+        }
+        await createMutation.mutateAsync(createPayload);
       } else {
         if (!id) throw new Error("Missing id");
-        await updateMutation.mutateAsync({ id, payload });
+
+        // build update payload with strict typing:
+        // BudgetUpdatePayload = Partial<{ categoryId: string | null; category: string; periodStart: string; amount: number; }>
+        const updatePayload: any = {};
+        if (typeof payload.amount !== "undefined")
+          updatePayload.amount = payload.amount;
+
+        if (typeof payload.categoryId !== "undefined") {
+          // empty string means "no category" from the form — convert to null for server
+          updatePayload.categoryId =
+            payload.categoryId === "" ? null : payload.categoryId;
+        } else if (
+          typeof payload.category !== "undefined" &&
+          payload.category !== null
+        ) {
+          // include category only if it's a non-null string (the update type expects string, not null)
+          updatePayload.category = payload.category;
+        }
+
+        if (typeof payload.periodStart !== "undefined" && payload.periodStart) {
+          updatePayload.periodStart = payload.periodStart as unknown as string;
+        }
+
+        await updateMutation.mutateAsync({ id, payload: updatePayload });
       }
+
+      // optimistic updates handled in hooks; navigate to list
       navigate(ROUTES.BUDGETS);
     } catch (err: any) {
       setError(err?.message ?? "Save failed");
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!id) return;
     if (!confirm("Delete this budget? This action cannot be undone.")) return;
-    setDeleting(true);
+    setError(null);
     try {
       await deleteMutation.mutateAsync(id);
       navigate(ROUTES.BUDGETS);
     } catch (err: any) {
       setError(err?.message ?? "Delete failed");
-    } finally {
-      setDeleting(false);
     }
   };
 
-  if (fetching) return <div>Loading budget…</div>;
+  if (loading) return <div>Loading budget…</div>;
   if (!isNew && error)
     return <div className="text-sm text-destructive">Error: {error}</div>;
 
@@ -116,9 +145,9 @@ export default function BudgetEditorPage(): JSX.Element {
               variant="destructive"
               size="sm"
               onClick={handleDelete}
-              disabled={deleting || deleteMutation.isLoading}
+              disabled={isDeleting}
             >
-              {deleting || deleteMutation.isLoading ? "Deleting…" : "Delete"}
+              {isDeleting ? "Deleting…" : "Delete"}
             </Button>
           </div>
         )}
@@ -128,9 +157,7 @@ export default function BudgetEditorPage(): JSX.Element {
         initial={initial ?? undefined}
         submitLabel={isNew ? "Create Budget" : "Save Changes"}
         onSubmit={handleSubmit}
-        submitting={
-          saving || createMutation.isLoading || updateMutation.isLoading
-        }
+        submitting={isCreating || isUpdating}
       />
     </div>
   );

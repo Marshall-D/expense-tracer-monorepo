@@ -18,6 +18,18 @@ const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
+  // Enforce categoryId presence — budgets must be for a category
+  if (
+    !categoryId ||
+    typeof categoryId !== "string" ||
+    categoryId.trim() === ""
+  ) {
+    return jsonResponse(400, {
+      error: "missing_category",
+      message: "categoryId is required for budgets.",
+    });
+  }
+
   const db = await getDb();
   if (!db)
     return jsonResponse(503, {
@@ -53,22 +65,6 @@ const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
           error: "invalid_category_id",
           message: "categoryId is not a valid ObjectId.",
         });
-      }
-    } else if (category && category.trim()) {
-      const userCat = await categories.findOne({
-        name: category,
-        userId: new ObjectId(userId),
-      });
-      const globalCat =
-        !userCat &&
-        (await categories.findOne({ name: category, userId: null }));
-      const cat = userCat || globalCat;
-      if (cat) {
-        resolvedCategoryId = cat._id;
-        resolvedCategoryName = cat.name;
-      } else {
-        resolvedCategoryId = null;
-        resolvedCategoryName = category;
       }
     }
 

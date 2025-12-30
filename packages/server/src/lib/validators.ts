@@ -70,7 +70,7 @@ export const updateCategorySchema = z.object({
  * periodStart: ISO date string representing the start of the period (e.g., 2025-12-01)
  */
 export const createBudgetSchema = z.object({
-  categoryId: objectIdString.optional(),
+  categoryId: objectIdString,
   category: z.string().min(1).optional(),
   // require periodStart ISO date string (client should provide, e.g. "2025-12-01")
   periodStart: z.string().refine((s) => !s || !Number.isNaN(Date.parse(s)), {

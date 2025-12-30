@@ -1,5 +1,4 @@
 // packages/client/src/pages/budgets/BudgetForm.tsx
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -9,14 +8,14 @@ import type { Budget } from "@/types/budget";
 import { useCategories } from "@/hooks/useCategories";
 
 type Props = {
-  initial?: Partial<Budget>;
+  initial?: Partial<Budget> | undefined;
   onSubmit: (payload: Budget) => Promise<void>;
   submitLabel?: string;
   submitting?: boolean;
 };
 
 export default function BudgetForm({
-  initial = {},
+  initial,
   onSubmit,
   submitLabel = "Save",
   submitting = false,
@@ -24,18 +23,25 @@ export default function BudgetForm({
   const { data: categories = [], isLoading: categoriesLoading } =
     useCategories(true);
 
-  const [categoryId, setCategoryId] = useState(initial.categoryId ?? "");
-  const [amount, setAmount] = useState(initial.amount?.toString() ?? "");
-  // use input type="month" for period selection (value like YYYY-MM)
-  const initialMonth = initial.periodStart
-    ? String(initial.periodStart).slice(0, 7)
-    : "";
-  const [periodMonth, setPeriodMonth] = useState(initialMonth);
+  // initialize from initial only once; keep controlled state afterwards
+  const [categoryId, setCategoryId] = useState<string>(
+    () => initial?.categoryId ?? ""
+  );
+  const [amount, setAmount] = useState<string>(
+    () => initial?.amount?.toString() ?? ""
+  );
+  const initialMonth =
+    initial && initial.periodStart
+      ? String(initial.periodStart).slice(0, 7)
+      : "";
+  const [periodMonth, setPeriodMonth] = useState<string>(() => initialMonth);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sync only if an explicit `initial` object is provided (e.g., editing)
   useEffect(() => {
-    // sync if initial changes (e.g., after fetch)
+    if (!initial) return;
     setCategoryId(initial.categoryId ?? "");
     setAmount(initial.amount?.toString() ?? "");
     setPeriodMonth(
@@ -47,6 +53,12 @@ export default function BudgetForm({
     e.preventDefault();
     setError(null);
     const parsed = Number(amount);
+
+    // Enforce required category
+    if (!categoryId) {
+      return setError("Choose a category");
+    }
+
     if (!periodMonth) return setError("Choose a period (month)");
     if (!parsed || parsed <= 0) return setError("Enter a valid amount");
     setLoading(true);
@@ -54,7 +66,7 @@ export default function BudgetForm({
       // convert YYYY-MM -> YYYY-MM-01 ISO
       const periodStartIso = `${periodMonth}-01`;
       await onSubmit({
-        categoryId: categoryId || undefined,
+        categoryId: categoryId,
         amount: parsed,
         periodStart: periodStartIso,
       } as Budget);
@@ -81,8 +93,11 @@ export default function BudgetForm({
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full h-10 rounded-md border border-border/20"
               disabled={categoriesLoading}
+              required
             >
-              <option value="">-- select category (optional) --</option>
+              <option value="" disabled>
+                -- select category --
+              </option>
               {categories.map((c: any) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
