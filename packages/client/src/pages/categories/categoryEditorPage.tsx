@@ -1,17 +1,19 @@
 // packages/client/src/pages/categories/CategoryEditorPage.tsx
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import CategoryForm from "./categoryForm";
 import ROUTES from "@/utils/routes";
 import type { Category } from "@/types/categories";
 import { Button } from "@/components/ui/button";
 import * as categoryService from "@/services/categoryService";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
+import CategoryForm from "./categoryForm";
 
 export default function CategoryEditorPage(): JSX.Element {
   const { id } = useParams();
   const isNew = !id;
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const [initial, setInitial] = useState<Partial<Category> | undefined>(
     undefined
@@ -47,6 +49,15 @@ export default function CategoryEditorPage(): JSX.Element {
     };
   }, [id]);
 
+  const invalidateCategories = async () => {
+    // Invalidate all queries whose first segment is queryKeys.categories
+    await qc.invalidateQueries({
+      predicate: (query) =>
+        Array.isArray(query.queryKey) &&
+        query.queryKey[0] === queryKeys.categories,
+    });
+  };
+
   const handleSubmit = async (payload: any) => {
     setError(null);
     setSaving(true);
@@ -57,6 +68,10 @@ export default function CategoryEditorPage(): JSX.Element {
         if (!id) throw new Error("Missing id");
         await categoryService.updateCategory(id, payload);
       }
+
+      // ensure categories list refetches immediately
+      await invalidateCategories();
+
       navigate(ROUTES.CATEGORIES);
     } catch (err: any) {
       setError(err?.message ?? "Save failed");
@@ -71,6 +86,10 @@ export default function CategoryEditorPage(): JSX.Element {
     setDeleting(true);
     try {
       await categoryService.deleteCategory(id);
+
+      // ensure categories list refetches immediately
+      await invalidateCategories();
+
       navigate(ROUTES.CATEGORIES);
     } catch (err: any) {
       setError(err?.message ?? "Delete failed");
