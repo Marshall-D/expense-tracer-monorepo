@@ -364,110 +364,112 @@ function ExpensesContent() {
         )}
       </div>
 
-      {/* MAIN GRID: left = table, right = persistent filter (desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-6">
-        {/* LEFT: main table */}
-        <Card className="border-border/40 bg-card/40">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing results
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            <div className="rounded-xl border border-border/40 overflow-hidden">
-              {isLoading ? (
-                <div className="p-6 text-center">Loading expenses…</div>
-              ) : isError ? (
-                <div className="p-6 text-center text-destructive">
-                  Failed to load expenses.
+      {/* MAIN: left content + right filter (desktop uses flex row so aside stays right) */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* LEFT: main table (take remaining space) */}
+        <div className="flex-1">
+          <Card className="border-border/40 bg-card/40">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing results
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="w-[100px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data && data.data.length > 0 ? (
-                      data.data.map((expense) => (
-                        <TableRow
-                          key={expense.id}
-                          className="hover:bg-accent/5 transition-colors"
-                        >
-                          <TableCell className="text-sm font-medium text-muted-foreground">
-                            {expense.date
-                              ? new Date(expense.date).toLocaleDateString()
-                              : ""}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {expense.description}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="secondary"
-                              className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 rounded-full font-medium"
-                            >
-                              {expense.category ?? "—"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-bold font-mono">
-                            {expense.currency === "USD" ? "$" : "₦"}
-                            {expense.amount.toLocaleString()}
-                          </TableCell>
+              </div>
+            </CardHeader>
 
-                          <TableCell>
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                asChild
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-primary"
+            <CardContent>
+              <div className="rounded-xl border border-border/40 overflow-hidden">
+                {isLoading ? (
+                  <div className="p-6 text-center">Loading expenses…</div>
+                ) : isError ? (
+                  <div className="p-6 text-center text-destructive">
+                    Failed to load expenses.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="w-[100px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data && data.data.length > 0 ? (
+                        data.data.map((expense) => (
+                          <TableRow
+                            key={expense.id}
+                            className="hover:bg-accent/5 transition-colors"
+                          >
+                            <TableCell className="text-sm font-medium text-muted-foreground">
+                              {expense.date
+                                ? new Date(expense.date).toLocaleDateString()
+                                : ""}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {expense.description}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 rounded-full font-medium"
                               >
-                                <Link to={ROUTES.EXPENSES_BY_ID(expense.id)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Link>
-                              </Button>
+                                {expense.category ?? "—"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-bold font-mono">
+                              {expense.currency === "USD" ? "$" : "₦"}
+                              {expense.amount.toLocaleString()}
+                            </TableCell>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-destructive"
-                                onClick={() => handleDelete(expense.id)}
-                                disabled={isDeleting}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <TableCell>
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  asChild
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:text-primary"
+                                >
+                                  <Link to={ROUTES.EXPENSES_BY_ID(expense.id)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:text-destructive"
+                                  onClick={() => handleDelete(expense.id)}
+                                  disabled={isDeleting}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center p-6">
+                            No expenses yet.
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center p-6">
-                          No expenses yet.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* RIGHT: persistent filter panel on desktop */}
+        {/* RIGHT: persistent filter panel on desktop (fixed width lg:w-80 = 320px) */}
         {isDesktop ? (
           <aside
             id="expenses-filter-panel"
-            className="sticky top-24 h-[70vh] overflow-y-auto"
+            className="lg:w-80 w-full sticky top-24 h-[70vh] overflow-y-auto"
           >
             <div className="p-4 bg-card/40 border border-border/30 rounded-md h-full">
               {FilterPanel}
