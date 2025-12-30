@@ -1,16 +1,12 @@
 // packages/client/src/pages/categories/CategoryEditorPage.tsx
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CategoryForm from "./categoryForm";
 import ROUTES from "@/utils/routes";
 import type { Category } from "@/types/categories";
 import { Button } from "@/components/ui/button";
-
-const DUMMY_CATEGORIES: Record<string, Category> = {
-  "1": { id: "1", name: "Food", color: "#f87171", type: "Global" },
-  "2": { id: "2", name: "Transport", color: "#fbbf24", type: "Global" },
-  "3": { id: "3", name: "Musicals", color: "#FF5733", type: "Custom" },
-};
+import * as categoryService from "@/services/categoryService";
 
 export default function CategoryEditorPage(): JSX.Element {
   const { id } = useParams();
@@ -26,6 +22,7 @@ export default function CategoryEditorPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
     if (!id) {
       setInitial(undefined);
       setLoading(false);
@@ -33,31 +30,53 @@ export default function CategoryEditorPage(): JSX.Element {
     }
 
     setLoading(true);
-    const t = setTimeout(() => {
-      const found = DUMMY_CATEGORIES[id];
-      if (found) setInitial(found);
-      else setError("Category not found (dummy).");
-      setLoading(false);
-    }, 350);
+    categoryService
+      .getCategory(id)
+      .then((cat) => {
+        if (!mounted) return;
+        setInitial(cat);
+      })
+      .catch((err: any) => {
+        console.error(err);
+        if (mounted) setError(err?.message ?? "Failed to load category");
+      })
+      .finally(() => mounted && setLoading(false));
 
-    return () => clearTimeout(t);
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const handleSubmit = async (payload: any) => {
     setError(null);
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setSaving(false);
-    navigate(ROUTES.CATEGORIES);
+    try {
+      if (isNew) {
+        await categoryService.createCategory(payload);
+      } else {
+        if (!id) throw new Error("Missing id");
+        await categoryService.updateCategory(id, payload);
+      }
+      navigate(ROUTES.CATEGORIES);
+    } catch (err: any) {
+      setError(err?.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!id) return;
     if (!confirm("Delete this category? This action cannot be undone.")) return;
     setDeleting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setDeleting(false);
-    navigate(ROUTES.CATEGORIES);
+    try {
+      await categoryService.deleteCategory(id);
+      navigate(ROUTES.CATEGORIES);
+    } catch (err: any) {
+      setError(err?.message ?? "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) return <div>Loading category…</div>;

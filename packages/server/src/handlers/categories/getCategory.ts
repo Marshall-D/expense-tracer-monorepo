@@ -1,4 +1,5 @@
 // packages/server/src/handlers/getCategory.ts
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
 import { jsonResponse } from "../../lib/validation";
@@ -57,6 +58,7 @@ const getCategoryImpl: APIGatewayProxyHandler = async (event) => {
         name: doc.name,
         color: doc.color ?? null,
         userId: doc.userId ? String(doc.userId) : null,
+        type: doc.userId ? "Custom" : "Global",
       },
     });
   } catch (err) {

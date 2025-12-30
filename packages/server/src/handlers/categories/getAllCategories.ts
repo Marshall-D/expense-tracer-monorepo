@@ -1,4 +1,5 @@
 // packages/server/src/handlers/getAllCategories.ts
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
 import { jsonResponse } from "../../lib/validation";
@@ -32,6 +33,7 @@ const getAllCategoriesImpl: APIGatewayProxyHandler = async (event) => {
       name: d.name,
       color: d.color ?? null,
       userId: d.userId ? String(d.userId) : null,
+      type: d.userId ? "Custom" : "Global",
     }));
     return jsonResponse(200, { data: items });
   } catch (err) {

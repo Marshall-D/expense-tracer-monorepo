@@ -56,12 +56,16 @@ const deleteCategoryImpl: APIGatewayProxyHandler = async (event) => {
     }
 
     // Cascade: set affected expenses to Uncategorized and clear categoryId
+    // Be robust: categoryId might be stored as ObjectId or as string — update both cases.
     await expenses.updateMany(
-      { categoryId: catId },
+      {
+        $or: [{ categoryId: catId }, { categoryId: String(catId) }],
+      },
       { $set: { categoryId: null, category: "Uncategorized" } }
     );
 
-    return jsonResponse(200, { success: true });
+    // No response body needed for delete — use 204
+    return jsonResponse(204, {});
   } catch (err) {
     console.error("deleteCategory error:", err);
     return jsonResponse(500, {

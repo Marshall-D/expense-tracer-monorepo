@@ -52,18 +52,18 @@ export const updateExpenseSchema = createExpenseSchema
 /**
  * Category schemas
  */
+
 export const createCategorySchema = z.object({
-  name: z.string().min(1, "name is required"),
+  name: z.string().min(1).max(100),
   color: z.string().optional(),
+  // must be 'Custom' when sent from the client — backend rejects creating 'Global'
+  type: z.enum(["Custom", "Global"]).optional(),
 });
 
-export const updateCategorySchema = createCategorySchema
-  .partial()
-  .refine((obj) => obj && Object.keys(obj).length > 0, {
-    message: "At least one field must be provided to update.",
-  });
-
-export { objectIdString };
+export const updateCategorySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  color: z.string().optional(),
+});
 
 /**
  * Budgets

@@ -1,4 +1,5 @@
 // packages/server/src/handlers/updateCategories.ts
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
 import { parseAndValidate, jsonResponse } from "../../lib/validation";
@@ -53,24 +54,29 @@ const updateCategoriesImpl: APIGatewayProxyHandler = async (event) => {
   try {
     const categories = db.collection("categories");
 
-    // If updating name, normalize and ensure it doesn't collide (case-insensitive) with any other category
+    // If updating name, normalize and ensure it doesn't collide (case-insensitive)
+    // only check against global categories (userId: null) and categories owned by this user.
     if (typeof updates.name !== "undefined") {
       const newName = String(updates.name).trim();
       // Check for existing category with same name (case-insensitive) that is NOT this category
       const clash = await categories.findOne(
-        { name: newName, _id: { $ne: catId } },
+        {
+          name: newName,
+          _id: { $ne: catId },
+          $or: [{ userId: null }, { userId: new ObjectId(userId) }],
+        },
         { collation: { locale: "en", strength: 2 } }
       );
       if (clash) {
         return jsonResponse(409, {
           error: "category_exists",
-          message: "Category with that name already exists.",
+          message: "Category with that name already exists (global or yours).",
         });
       }
       updates.name = newName;
     }
 
-    // Only allow updating user-owned categories
+    // Only allow updating user-owned categories (global categories cannot be updated).
     const result = await categories.findOneAndUpdate(
       { _id: catId, userId: new ObjectId(userId) },
       { $set: { ...updates, updatedAt: new Date() } },
@@ -91,6 +97,7 @@ const updateCategoriesImpl: APIGatewayProxyHandler = async (event) => {
         name: doc.name,
         color: doc.color ?? null,
         userId: doc.userId ? String(doc.userId) : null,
+        type: doc.userId ? "Custom" : "Global",
       },
     });
   } catch (err) {
