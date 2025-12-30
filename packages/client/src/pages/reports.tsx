@@ -1,5 +1,5 @@
-//       packages/client/src/pages/reports.tsx
-import React from "react";
+// packages/client/src/pages/reports.tsx
+import React, { useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -21,25 +21,121 @@ import {
 } from "recharts";
 import { Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  useTrends,
+  useCategoryReport,
+  useExportExpenses,
+} from "@/hooks/useReports";
+import { format, parseISO } from "date-fns";
 
-const trendData = [
-  { name: "Jul", income: 8000, expenses: 4500 },
-  { name: "Aug", income: 8500, expenses: 5200 },
-  { name: "Sep", income: 8200, expenses: 4800 },
-  { name: "Oct", income: 9000, expenses: 6100 },
-  { name: "Nov", income: 8800, expenses: 5500 },
-  { name: "Dec", income: 9500, expenses: 6700 },
-];
+/**
+ * ReportsPage wired to backend:
+ * - Trends: /api/reports/trends?months=N
+ * - By category: /api/reports/by-category?from=YYYY-MM-DD&to=YYYY-MM-DD
+ *
+ * Implementation choices:
+ * - trends shows two series: totalUSD & totalNGN (backend provides both)
+ * - category chart shows totalAll (totalUSD+totalNGN) on bars and tooltip breaks down currencies
+ * - Export button triggers CSV download for the current month range
+ */
 
-const categorySpending = [
-  { name: "Housing", amount: 2500, color: "var(--chart-1)" },
-  { name: "Food", amount: 1200, color: "var(--chart-2)" },
-  { name: "Transport", amount: 800, color: "var(--chart-3)" },
-  { name: "Entertainment", amount: 600, color: "var(--chart-4)" },
-  { name: "Health", amount: 450, color: "var(--chart-5)" },
-];
+function monthLabel(isoMonth: string) {
+  // isoMonth is "YYYY-MM"
+  try {
+    const [y, m] = isoMonth.split("-");
+    const d = new Date(Number(y), Number(m) - 1, 1);
+    return format(d, "MMM yyyy");
+  } catch {
+    return isoMonth;
+  }
+}
 
 export default function ReportsPage() {
+  const [monthsAgo] = useState<number>(6);
+
+  // trends hook
+  const { data: trendsData, isLoading: trendsLoading } = useTrends(monthsAgo);
+
+  // category report for the most recent month (derive from trends data or default to current month)
+  const latestMonth = trendsData?.months?.length
+    ? trendsData.months[trendsData.months.length - 1].month
+    : null;
+  // build from/to for that month
+  const [fromTo] = useMemo(() => {
+    if (!latestMonth) {
+      const now = new Date();
+      const thisMonth = `${now.getUTCFullYear()}-${String(
+        now.getUTCMonth() + 1
+      ).padStart(2, "0")}`;
+      const start = `${thisMonth}-01`;
+      const end = format(
+        new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+        "yyyy-MM-dd"
+      );
+      return [start, end];
+    }
+    // latestMonth example: "2025-12"
+    const [y, m] = latestMonth.split("-");
+    const startDate = `${y}-${m}-01`;
+    const endD = new Date(Number(y), Number(m), 0); // last day of month
+    const endDate = format(endD, "yyyy-MM-dd");
+    return [startDate, endDate];
+  }, [latestMonth]);
+
+  const { data: categoryResp, isLoading: categoryLoading } = useCategoryReport(
+    fromTo[0],
+    fromTo[1]
+  );
+
+  // export mutation
+  const exportMutation = useExportExpenses();
+  const isLoading = exportMutation.status === "pending";
+
+  const handleDownload = async () => {
+    try {
+      const resp = await exportMutation.mutateAsync({
+        from: fromTo[0],
+        to: fromTo[1],
+      });
+      const blob = new Blob([resp.data], {
+        type: resp.headers["content-type"] ?? "text/csv",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      // attempt to parse content-disposition filename
+      const disp = resp.headers["content-disposition"] as string | undefined;
+      const fileName =
+        disp?.match(/filename="(.+)"/)?.[1] ??
+        `expenses_${fromTo[0]}_${fromTo[1]}.csv`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed", err);
+      // optionally show toast
+    }
+  };
+
+  // prepare data for charts
+  const trendChartData =
+    trendsData?.months?.map((m) => ({
+      name: monthLabel(m.month),
+      usd: m.totalUSD ?? 0,
+      ngn: m.totalNGN ?? 0,
+    })) ?? [];
+
+  const byCategoryData =
+    categoryResp?.byCategory?.map((r, i) => ({
+      name: r.category,
+      totalUSD: r.totalUSD ?? 0,
+      totalNGN: r.totalNGN ?? 0,
+      totalAll: (r.totalUSD ?? 0) + (r.totalNGN ?? 0),
+      color: `var(--chart-${(i % 5) + 1})`,
+    })) ?? [];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -59,8 +155,13 @@ export default function ReportsPage() {
           >
             <Calendar className="h-4 w-4" /> This Year
           </Button>
-          <Button size="sm" className="rounded-full gap-2">
-            <Download className="h-4 w-4" /> Download Report
+          <Button
+            size="sm"
+            className="rounded-full gap-2"
+            onClick={handleDownload}
+            disabled={isLoading}
+          >
+            <Download className="h-4 w-4" /> Download CSV
           </Button>
         </div>
       </div>
@@ -70,98 +171,82 @@ export default function ReportsPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Income vs Expenses</CardTitle>
+                <CardTitle>Spending Trends</CardTitle>
                 <CardDescription>
-                  Monthly comparison of cash flow.
+                  Totals by currency across the last {monthsAgo} months.
                 </CardDescription>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                    Income
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                    Expenses
-                  </span>
-                </div>
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient
-                    id="colorExpenses"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
+            {trendsLoading ? (
+              <div className="p-6">Loading trends…</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendChartData}>
+                  <defs>
+                    <linearGradient id="gUSD" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="#2563eb"
+                        stopOpacity={0.12}
+                      />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gNGN" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="#10b981"
+                        stopOpacity={0.12}
+                      />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="rgba(255,255,255,0.05)"
-                />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "oklch(0.7 0.01 260)", fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "oklch(0.7 0.01 260)", fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "oklch(0.22 0.02 260)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
-                  }}
-                />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="rgba(255,255,255,0.05)"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "oklch(0.7 0.01 260)", fontSize: 12 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "oklch(0.7 0.01 260)", fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "oklch(0.22 0.02 260)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "12px",
+                    }}
+                  />
 
-                <Area
-                  type="monotone"
-                  dataKey="income"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorIncome)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorExpenses)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                  <Area
+                    type="monotone"
+                    dataKey="ngn"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#gNGN)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="usd"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#gUSD)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -169,46 +254,58 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Spending by Category</CardTitle>
             <CardDescription>
-              Top expense categories this month.
+              Top categories for {fromTo[0]} → {fromTo[1]}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categorySpending} layout="vertical">
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  horizontal={false}
-                  stroke="rgba(255,255,255,0.05)"
-                />
-                <XAxis type="number" hide />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: "oklch(0.95 0.01 260)",
-                    fontSize: 12,
-                    fontWeight: 500,
-                  }}
-                  width={100}
-                />
-                <Tooltip
-                  cursor={{ fill: "rgba(255,255,255,0.05)" }}
-                  contentStyle={{
-                    backgroundColor: "oklch(0.22 0.02 260)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
-                  }}
-                />
-                <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={20}>
-                  {categorySpending.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {categoryLoading ? (
+              <div className="p-6">Loading categories…</div>
+            ) : byCategoryData.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                No category data for the selected period.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={byCategoryData} layout="vertical">
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                    stroke="rgba(255,255,255,0.05)"
+                  />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "oklch(0.95 0.01 260)",
+                      fontSize: 12,
+                      fontWeight: 500,
+                    }}
+                    width={140}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.05)" }}
+                    contentStyle={{
+                      backgroundColor: "oklch(0.22 0.02 260)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "12px",
+                    }}
+                    formatter={(value: any, name: any, props: any) => {
+                      // For nicer tooltip display
+                      return [value, name];
+                    }}
+                  />
+                  <Bar dataKey="totalAll" radius={[0, 4, 4, 0]} barSize={20}>
+                    {byCategoryData.map((entry, idx) => (
+                      <Cell key={entry.name + idx} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
