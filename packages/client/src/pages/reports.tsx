@@ -1,4 +1,5 @@
 // packages/client/src/pages/reports.tsx
+
 import React, { useMemo, useState } from "react";
 import {
   Card,
@@ -60,8 +61,9 @@ export default function ReportsPage() {
   const latestMonth = trendsData?.months?.length
     ? trendsData.months[trendsData.months.length - 1].month
     : null;
+
   // build from/to for that month
-  const [fromTo] = useMemo(() => {
+  const [from, to] = useMemo(() => {
     if (!latestMonth) {
       const now = new Date();
       const thisMonth = `${now.getUTCFullYear()}-${String(
@@ -83,8 +85,8 @@ export default function ReportsPage() {
   }, [latestMonth]);
 
   const { data: categoryResp, isLoading: categoryLoading } = useCategoryReport(
-    fromTo[0],
-    fromTo[1]
+    from,
+    to
   );
 
   // export mutation
@@ -94,8 +96,8 @@ export default function ReportsPage() {
   const handleDownload = async () => {
     try {
       const resp = await exportMutation.mutateAsync({
-        from: fromTo[0],
-        to: fromTo[1],
+        from,
+        to,
       });
       const blob = new Blob([resp.data], {
         type: resp.headers["content-type"] ?? "text/csv",
@@ -106,8 +108,7 @@ export default function ReportsPage() {
       // attempt to parse content-disposition filename
       const disp = resp.headers["content-disposition"] as string | undefined;
       const fileName =
-        disp?.match(/filename="(.+)"/)?.[1] ??
-        `expenses_${fromTo[0]}_${fromTo[1]}.csv`;
+        disp?.match(/filename="(.+)"/)?.[1] ?? `expenses_${from}_${to}.csv`;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
@@ -254,7 +255,7 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Spending by Category</CardTitle>
             <CardDescription>
-              Top categories for {fromTo[0]} → {fromTo[1]}
+              Top categories for {from} → {to}
             </CardDescription>
           </CardHeader>
 
