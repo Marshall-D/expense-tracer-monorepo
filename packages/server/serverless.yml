@@ -173,5 +173,5 @@ functions:
     handler: src/handlers/reports/expensesReport.handler
     events:
       - httpApi:
-          path: /api/expenses/export
+          path: /api/export/expenses
           method: get

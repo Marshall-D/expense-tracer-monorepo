@@ -1,5 +1,4 @@
 // packages/client/src/pages/reports.tsx
-
 import React, { useMemo, useState } from "react";
 import {
   Card,
@@ -27,17 +26,14 @@ import {
   useCategoryReport,
   useExportExpenses,
 } from "@/hooks/useReports";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
 /**
  * ReportsPage wired to backend:
  * - Trends: /api/reports/trends?months=N
  * - By category: /api/reports/by-category?from=YYYY-MM-DD&to=YYYY-MM-DD
  *
- * Implementation choices:
- * - trends shows two series: totalUSD & totalNGN (backend provides both)
- * - category chart shows totalAll (totalUSD+totalNGN) on bars and tooltip breaks down currencies
- * - Export button triggers CSV download for the current month range
+ * Download/export: calls /api/expenses/export?from=YYYY-MM-DD&to=YYYY-MM-DD&format=csv
  */
 
 function monthLabel(isoMonth: string) {
@@ -93,30 +89,95 @@ export default function ReportsPage() {
   const exportMutation = useExportExpenses();
   const isLoading = exportMutation.status === "pending";
 
+  // helper to build fallback filename
+  function fallbackFileName(fromStr: string, toStr: string) {
+    return `expenses_${fromStr}_${toStr}.csv`;
+  }
+
   const handleDownload = async () => {
     try {
+      // call mutateAsync to get the axios response (responseType: blob)
       const resp = await exportMutation.mutateAsync({
         from,
         to,
       });
-      const blob = new Blob([resp.data], {
-        type: resp.headers["content-type"] ?? "text/csv",
-      });
+
+      // resp might be an axios response; props: data, headers, status
+      const respData = (resp as any)?.data ?? resp;
+      const headers = (resp as any)?.headers ?? {};
+
+      // If server responded with JSON error (e.g. validation), try to surface it
+      // If respData is a Blob, we can use it directly
+      let blob: Blob;
+      if (respData instanceof Blob) {
+        blob = respData;
+      } else if (
+        respData &&
+        typeof respData === "object" &&
+        respData.constructor?.name === "ArrayBuffer"
+      ) {
+        // axios with responseType 'arraybuffer'
+        blob = new Blob([respData], {
+          type: headers["content-type"] ?? "text/csv",
+        });
+      } else if (typeof respData === "string") {
+        // Response came back as string (server returned a raw string)
+        blob = new Blob([respData], {
+          type: headers["content-type"] ?? "text/csv",
+        });
+      } else {
+        // Last resort — attempt to stringify
+        blob = new Blob([JSON.stringify(respData)], {
+          type: "application/json",
+        });
+      }
+
       const url = window.URL.createObjectURL(blob);
+
+      const disp =
+        headers["content-disposition"] ||
+        headers["Content-Disposition"] ||
+        (headers["content-disposition"]
+          ? headers["content-disposition"]
+          : undefined);
+
+      // If the server didn't expose Content-Disposition (CORS), fallback to a constructed filename
+      let fileName = fallbackFileName(from, to);
+      if (typeof disp === "string") {
+        const m = disp.match(/filename="(.+)"/);
+        if (m && m[1]) fileName = m[1];
+        else {
+          // Also try filename*=UTF-8''encoded form
+          const m2 = disp.match(/filename\*=UTF-8''(.+)/i);
+          if (m2 && m2[1]) fileName = decodeURIComponent(m2[1]);
+        }
+      }
+
       const a = document.createElement("a");
       a.href = url;
-      // attempt to parse content-disposition filename
-      const disp = resp.headers["content-disposition"] as string | undefined;
-      const fileName =
-        disp?.match(/filename="(.+)"/)?.[1] ?? `expenses_${from}_${to}.csv`;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Export failed", err);
-      // optionally show toast
+      // If server returned HTTP error with JSON, log that message to console to aid debugging:
+      if (err?.response?.data) {
+        try {
+          // try to read text from blob if it's a blob
+          const d = err.response.data;
+          if (d instanceof Blob) {
+            const text = await d.text();
+            console.error("Server error body:", text);
+          } else {
+            console.error("Server error body:", d);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      // optionally show toast to user here
     }
   };
 
@@ -162,7 +223,8 @@ export default function ReportsPage() {
             onClick={handleDownload}
             disabled={isLoading}
           >
-            <Download className="h-4 w-4" /> Download CSV
+            <Download className="h-4 w-4" />{" "}
+            {isLoading ? "Downloading…" : "Download CSV"}
           </Button>
         </div>
       </div>

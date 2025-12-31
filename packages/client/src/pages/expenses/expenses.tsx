@@ -1,4 +1,5 @@
 // packages/client/src/pages/expenses/expenses.tsx
+
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -25,6 +26,8 @@ import {
 import ROUTES from "@/utils/routes";
 import { useExpenses, useDeleteExpense } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
+import { useExportExpenses } from "@/hooks/useReports";
+import { format } from "date-fns";
 
 /** Small debounce hook used for search input */
 function useDebouncedValue<T>(value: T, delayMs = 300) {
@@ -209,6 +212,97 @@ function ExpensesContent() {
     }
   };
 
+  // ------------------- Export CSV wiring -------------------
+  const exportMutation = useExportExpenses();
+  const isExporting = exportMutation.status === "pending";
+
+  function defaultRange() {
+    const today = new Date();
+    const to = format(today, "yyyy-MM-dd");
+    const fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const from = format(fromDate, "yyyy-MM-dd");
+    return { from, to };
+  }
+
+  function fallbackFileName(fromStr: string, toStr: string) {
+    return `expenses_${fromStr}_${toStr}.csv`;
+  }
+
+  const handleExport = async () => {
+    const { from: defFrom, to: defTo } = defaultRange();
+    const from = appliedFrom || defFrom;
+    const to = appliedTo || defTo;
+
+    try {
+      const resp = await exportMutation.mutateAsync({ from, to });
+
+      const respData = (resp as any)?.data ?? resp;
+      const headers = (resp as any)?.headers ?? {};
+
+      let blob: Blob;
+      if (respData instanceof Blob) {
+        blob = respData;
+      } else if (
+        respData &&
+        typeof respData === "object" &&
+        respData.constructor?.name === "ArrayBuffer"
+      ) {
+        blob = new Blob([respData], {
+          type: headers["content-type"] ?? "text/csv",
+        });
+      } else if (typeof respData === "string") {
+        blob = new Blob([respData], {
+          type: headers["content-type"] ?? "text/csv",
+        });
+      } else {
+        blob = new Blob([JSON.stringify(respData)], {
+          type: "application/json",
+        });
+      }
+
+      const url = window.URL.createObjectURL(blob);
+
+      const disp =
+        headers["content-disposition"] ||
+        headers["Content-Disposition"] ||
+        undefined;
+
+      let fileName = fallbackFileName(from, to);
+      if (typeof disp === "string") {
+        const m = disp.match(/filename="(.+)"/);
+        if (m && m[1]) fileName = m[1];
+        else {
+          const m2 = disp.match(/filename\*=UTF-8''(.+)/i);
+          if (m2 && m2[1]) fileName = decodeURIComponent(m2[1]);
+        }
+      }
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("Export failed", err);
+      if (err?.response?.data) {
+        try {
+          const d = err.response.data;
+          if (d instanceof Blob) {
+            const text = await d.text();
+            console.error("Server error body:", text);
+          } else {
+            console.error("Server error body:", d);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  };
+  // ---------------------------------------------------------
+
   // Filter panel markup (re-used for desktop aside and mobile drawer)
   const FilterPanel = (
     <div className="flex flex-col h-full">
@@ -306,11 +400,11 @@ function ExpensesContent() {
             variant="outline"
             size="sm"
             className="rounded-full gap-2 bg-transparent"
-            onClick={() => {
-              // TODO: export CSV
-            }}
+            onClick={handleExport}
+            disabled={isExporting}
           >
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" />{" "}
+            {isExporting ? "Downloading…" : "Export CSV"}
           </Button>
 
           <Button asChild size="sm" className="rounded-full gap-2">

@@ -41,7 +41,7 @@ export const fetchByCategory = async (
 
 export const exportExpenses = async (from: string, to: string) => {
   // returns CSV blob response
-  const resp = await api.get("/api/expenses/export", {
+  const resp = await api.get("/api/export/expenses", {
     params: { from, to, format: "csv" },
     responseType: "blob",
   });

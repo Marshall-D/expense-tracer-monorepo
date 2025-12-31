@@ -422,8 +422,8 @@ app.get("/api/reports/trends", async (req, res) => {
   }
 });
 
-// GET /api/expenses/export
-app.get("/api/expenses/export", async (req, res) => {
+// GET /api/export/expenses
+app.get("/api/export/expenses", async (req, res) => {
   try {
     const event = toApiGatewayEvent(req);
     const result = (await expensesExportHandler(

@@ -1,4 +1,5 @@
-// packages/server/src/handlers/expenses.export.ts
+// packages/server/src/handlers/reports/expensesReport.ts
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
 import { jsonResponse } from "../../lib/validation";
@@ -16,20 +17,46 @@ const querySchema = z.object({
   format: z.string().optional().default("csv"),
 });
 
+/**
+ * Escapes and builds one CSV field row.
+ * Uses ', ' (comma + space) as the separator to increase visual spacing.
+ * Fields containing commas/quotes/newlines are quoted per CSV rules.
+ */
 function toCSVRow(arr: (string | number | null | undefined)[]) {
-  return arr
-    .map((v) => {
-      if (v === null || v === undefined) return "";
-      const s = String(v);
-      // escape quotes, wrap field containing commas/quotes/newlines in quotes
-      const escaped = s.replace(/"/g, '""');
-      if (/[",\n\r]/.test(s)) return `"${escaped}"`;
-      return escaped;
-    })
-    .join(",");
+  const cells = arr.map((v) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    const escaped = s.replace(/"/g, '""');
+    // If the value contains a comma, quote, newline or CR, wrap in quotes
+    if (/[",\n\r]/.test(s)) return `"${escaped}"`;
+    return escaped;
+  });
+  // join with comma + space for more readable spacing
+  return cells.join(", ");
 }
 
 const MAX_ROWS = 5000; // safe threshold for inline export
+
+function formatDateOnlyUTC(input: any) {
+  if (!input) return "";
+  try {
+    const d = new Date(input);
+    // return YYYY-MM-DD in UTC
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return String(input);
+  }
+}
+
+function formatAmount(n: any) {
+  const num = Number(n ?? 0);
+  if (Number.isNaN(num)) return String(n ?? "");
+  // show two decimals and thousands separators, e.g. 12,345.00
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
 
 const expensesExportImpl: APIGatewayProxyHandler = async (event) => {
   if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
@@ -78,49 +105,47 @@ const expensesExportImpl: APIGatewayProxyHandler = async (event) => {
 
     const docs = await cursor.toArray();
     if (docs.length > MAX_ROWS) {
-      // For large exports suggest S3 signed URL flow
       return jsonResponse(413, {
         error: "too_large",
-        message: `Export too large for inline PDF/CSV; request a signed S3 export (implement later). Rows > ${MAX_ROWS}`,
+        message: `Export too large for inline CSV; request a signed S3 export (implement later). Rows > ${MAX_ROWS}`,
       });
     }
 
-    // CSV header
-    const header = [
-      "id",
-      "amount",
-      "currency",
-      "description",
-      "category",
-      "categoryId",
-      "date",
-      "createdAt",
-    ];
-    const rows = [toCSVRow(header)];
+    // CSV header (no Currency column, no Created At)
+    const header = ["Date", "Description", "Category", "Amount"];
+
+    const rows: string[] = [];
+    // header row (with spaces after commas because toCSVRow uses ', ')
+    rows.push(toCSVRow(header));
+    // blank spacer row (visual spacing between header and data)
+    rows.push("");
+
     for (const d of docs) {
-      rows.push(
-        toCSVRow([
-          String(d._id),
-          d.amount,
-          d.currency,
-          d.description ?? "",
-          d.category ?? "",
-          d.categoryId ? String(d.categoryId) : "",
-          d.date ? new Date(d.date).toISOString() : "",
-          d.createdAt ? new Date(d.createdAt).toISOString() : "",
-        ])
-      );
+      const row = [
+        formatDateOnlyUTC(d.date),
+        d.description ?? "",
+        d.category ?? "",
+        formatAmount(d.amount),
+      ];
+      rows.push(toCSVRow(row));
+      // add a blank spacer line between rows for readability
+      rows.push("");
     }
-    const csv = rows.join("\n");
-    // Return CSV directly
+
+    // prefix a UTF-8 BOM so Excel/Sheets read UTF-8 correctly
+    const csvContent = "\uFEFF" + rows.join("\n");
+
+    const fileName = `expenses_${from}_to_${to}.csv`;
+
     return {
       statusCode: 200,
       headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="expenses_${from}_to_${to}.csv"`,
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Expose-Headers": "Content-Disposition",
       },
-      body: csv,
+      body: csvContent,
     };
   } catch (err) {
     console.error("expenses.export error:", err);
