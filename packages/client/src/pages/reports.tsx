@@ -1,5 +1,5 @@
 // packages/client/src/pages/reports.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import {
   Bar,
   Cell,
 } from "recharts";
-import { Download, Calendar } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   useTrends,
@@ -28,86 +28,117 @@ import {
 } from "@/hooks/useReports";
 import { format } from "date-fns";
 
-/**
- * ReportsPage wired to backend:
- * - Trends: /api/reports/trends?months=N
- * - By category: /api/reports/by-category?from=YYYY-MM-DD&to=YYYY-MM-DD
- *
- * Download/export: calls /api/expenses/export?from=YYYY-MM-DD&to=YYYY-MM-DD&format=csv
- */
-
-function monthLabel(isoMonth: string) {
-  // isoMonth is "YYYY-MM"
+function monthLabel(isoMonth: string | null) {
+  if (!isoMonth) return "—";
   try {
     const [y, m] = isoMonth.split("-");
     const d = new Date(Number(y), Number(m) - 1, 1);
     return format(d, "MMM yyyy");
   } catch {
-    return isoMonth;
+    return String(isoMonth);
   }
 }
 
-export default function ReportsPage() {
-  const [monthsAgo] = useState<number>(6);
+function monthShort(isoMonth: string | null) {
+  if (!isoMonth) return "—";
+  try {
+    const [y, m] = isoMonth.split("-");
+    const d = new Date(Number(y), Number(m) - 1, 1);
+    return format(d, "MMM");
+  } catch {
+    return String(isoMonth);
+  }
+}
 
-  // trends hook
+function monthToRange(isoMonth: string) {
+  const [y, m] = isoMonth.split("-");
+  const year = Number(y);
+  const month = Number(m) - 1;
+  const start = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month + 1, 0, 0, 0, 0));
+  return [format(start, "yyyy-MM-dd"), format(end, "yyyy-MM-dd")];
+}
+
+export default function ReportsPage() {
+  // trends window: fixed to last 6 months
+  const monthsAgo = 6;
+
+  // fetch trends for last N months
   const { data: trendsData, isLoading: trendsLoading } = useTrends(monthsAgo);
 
-  // category report for the most recent month (derive from trends data or default to current month)
-  const latestMonth = trendsData?.months?.length
-    ? trendsData.months[trendsData.months.length - 1].month
-    : null;
+  // build available months list (oldest -> newest) from trends
+  const availableMonths = useMemo(() => {
+    return trendsData?.months?.map((m) => m.month) ?? [];
+  }, [trendsData]);
 
-  // build from/to for that month
-  const [from, to] = useMemo(() => {
-    if (!latestMonth) {
-      const now = new Date();
-      const thisMonth = `${now.getUTCFullYear()}-${String(
-        now.getUTCMonth() + 1
-      ).padStart(2, "0")}`;
-      const start = `${thisMonth}-01`;
-      const end = format(
-        new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
-        "yyyy-MM-dd"
-      );
-      return [start, end];
-    }
-    // latestMonth example: "2025-12"
-    const [y, m] = latestMonth.split("-");
-    const startDate = `${y}-${m}-01`;
-    const endD = new Date(Number(y), Number(m), 0); // last day of month
-    const endDate = format(endD, "yyyy-MM-dd");
-    return [startDate, endDate];
-  }, [latestMonth]);
+  // fallback current month if trends missing
+  const now = new Date();
+  const currentIsoMonth = `${now.getUTCFullYear()}-${String(
+    now.getUTCMonth() + 1
+  ).padStart(2, "0")}`;
 
+  // selected month used by the "Spending by Category" chart
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+  // initialize selectedMonth to latest month when trends arrive
+  useEffect(() => {
+    if (selectedMonth) return;
+    const latest =
+      trendsData?.months && trendsData.months.length
+        ? trendsData.months[trendsData.months.length - 1].month
+        : currentIsoMonth;
+    setSelectedMonth(latest);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trendsData]);
+
+  // trends chart data (map months -> labels & totals)
+  const trendChartData =
+    trendsData?.months?.map((m) => ({
+      name: monthLabel(m.month),
+      usd: m.totalUSD ?? 0,
+      ngn: m.totalNGN ?? 0,
+    })) ?? [];
+
+  // determine date range for the selected month (fallback to current)
+  const selMonth =
+    selectedMonth ??
+    availableMonths[availableMonths.length - 1] ??
+    currentIsoMonth;
+  const [from, to] = monthToRange(selMonth);
+
+  // category report for selected month
   const { data: categoryResp, isLoading: categoryLoading } = useCategoryReport(
     from,
     to
   );
 
-  // export mutation
-  const exportMutation = useExportExpenses();
-  const isLoading = exportMutation.status === "pending";
+  // by-category chart data
+  const byCategoryData =
+    categoryResp?.byCategory?.map((r, i) => ({
+      name: r.category,
+      totalUSD: r.totalUSD ?? 0,
+      totalNGN: r.totalNGN ?? 0,
+      totalAll: (r.totalUSD ?? 0) + (r.totalNGN ?? 0),
+      color: `var(--chart-${(i % 5) + 1})`,
+    })) ?? [];
 
-  // helper to build fallback filename
+  // export mutation (shows toast via hook)
+  const exportMutation = useExportExpenses();
+  const isExporting = exportMutation.status === "pending";
+
+  // helper fallback filename
   function fallbackFileName(fromStr: string, toStr: string) {
     return `expenses_${fromStr}_${toStr}.csv`;
   }
 
   const handleDownload = async () => {
     try {
-      // call mutateAsync to get the axios response (responseType: blob)
-      const resp = await exportMutation.mutateAsync({
-        from,
-        to,
-      });
+      // use selected month range for export
+      const resp = await exportMutation.mutateAsync({ from, to });
 
-      // resp might be an axios response; props: data, headers, status
       const respData = (resp as any)?.data ?? resp;
       const headers = (resp as any)?.headers ?? {};
 
-      // If server responded with JSON error (e.g. validation), try to surface it
-      // If respData is a Blob, we can use it directly
       let blob: Blob;
       if (respData instanceof Blob) {
         blob = respData;
@@ -116,17 +147,14 @@ export default function ReportsPage() {
         typeof respData === "object" &&
         respData.constructor?.name === "ArrayBuffer"
       ) {
-        // axios with responseType 'arraybuffer'
         blob = new Blob([respData], {
           type: headers["content-type"] ?? "text/csv",
         });
       } else if (typeof respData === "string") {
-        // Response came back as string (server returned a raw string)
         blob = new Blob([respData], {
           type: headers["content-type"] ?? "text/csv",
         });
       } else {
-        // Last resort — attempt to stringify
         blob = new Blob([JSON.stringify(respData)], {
           type: "application/json",
         });
@@ -137,17 +165,13 @@ export default function ReportsPage() {
       const disp =
         headers["content-disposition"] ||
         headers["Content-Disposition"] ||
-        (headers["content-disposition"]
-          ? headers["content-disposition"]
-          : undefined);
+        undefined;
 
-      // If the server didn't expose Content-Disposition (CORS), fallback to a constructed filename
       let fileName = fallbackFileName(from, to);
       if (typeof disp === "string") {
         const m = disp.match(/filename="(.+)"/);
         if (m && m[1]) fileName = m[1];
         else {
-          // Also try filename*=UTF-8''encoded form
           const m2 = disp.match(/filename\*=UTF-8''(.+)/i);
           if (m2 && m2[1]) fileName = decodeURIComponent(m2[1]);
         }
@@ -162,10 +186,8 @@ export default function ReportsPage() {
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error("Export failed", err);
-      // If server returned HTTP error with JSON, log that message to console to aid debugging:
       if (err?.response?.data) {
         try {
-          // try to read text from blob if it's a blob
           const d = err.response.data;
           if (d instanceof Blob) {
             const text = await d.text();
@@ -177,26 +199,9 @@ export default function ReportsPage() {
           // ignore
         }
       }
-      // optionally show toast to user here
+      // export hook already shows error toast via onError
     }
   };
-
-  // prepare data for charts
-  const trendChartData =
-    trendsData?.months?.map((m) => ({
-      name: monthLabel(m.month),
-      usd: m.totalUSD ?? 0,
-      ngn: m.totalNGN ?? 0,
-    })) ?? [];
-
-  const byCategoryData =
-    categoryResp?.byCategory?.map((r, i) => ({
-      name: r.category,
-      totalUSD: r.totalUSD ?? 0,
-      totalNGN: r.totalNGN ?? 0,
-      totalAll: (r.totalUSD ?? 0) + (r.totalNGN ?? 0),
-      color: `var(--chart-${(i % 5) + 1})`,
-    })) ?? [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -209,22 +214,16 @@ export default function ReportsPage() {
             In-depth analysis of your financial performance over time.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full gap-2 bg-transparent"
-          >
-            <Calendar className="h-4 w-4" /> This Year
-          </Button>
+
+        <div className="flex gap-2 items-center">
           <Button
             size="sm"
             className="rounded-full gap-2"
             onClick={handleDownload}
-            disabled={isLoading}
+            disabled={isExporting}
           >
             <Download className="h-4 w-4" />{" "}
-            {isLoading ? "Downloading…" : "Download CSV"}
+            {isExporting ? "Downloading…" : "Download CSV"}
           </Button>
         </div>
       </div>
@@ -232,13 +231,11 @@ export default function ReportsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 border-border/40 bg-card/40">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Spending Trends</CardTitle>
-                <CardDescription>
-                  Totals by currency across the last {monthsAgo} months.
-                </CardDescription>
-              </div>
+            <div>
+              <CardTitle>Spending Trends</CardTitle>
+              <CardDescription>
+                Totals by currency across the last {monthsAgo} months.
+              </CardDescription>
             </div>
           </CardHeader>
 
@@ -314,11 +311,34 @@ export default function ReportsPage() {
         </Card>
 
         <Card className="col-span-3 border-border/40 bg-card/40">
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-            <CardDescription>
-              Top categories for {from} → {to}
-            </CardDescription>
+          <CardHeader className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Spending by Category</CardTitle>
+              <CardDescription>
+                Top categories for{" "}
+                <span className="font-medium">{monthLabel(selMonth)}</span>
+              </CardDescription>
+            </div>
+
+            {/* Month selector inside the card (uses months from trends) */}
+            <div className="ml-auto">
+              <select
+                aria-label="Select month"
+                value={selMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="h-9 rounded-md border border-border/20 bg-background/60 px-2 text-sm"
+              >
+                {/* prefer availableMonths, fallback to currentIsoMonth */}
+                {(availableMonths.length
+                  ? availableMonths
+                  : [currentIsoMonth]
+                ).map((m) => (
+                  <option key={m} value={m}>
+                    {monthShort(m)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </CardHeader>
 
           <CardContent className="h-[350px]">
@@ -357,7 +377,6 @@ export default function ReportsPage() {
                       borderRadius: "12px",
                     }}
                     formatter={(value: any, name: any, props: any) => {
-                      // For nicer tooltip display
                       return [value, name];
                     }}
                   />
