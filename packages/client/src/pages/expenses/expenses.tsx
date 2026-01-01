@@ -161,7 +161,7 @@ function ExpensesContent() {
     debouncedSearchTerm,
   ]);
 
-  // date validation
+  // date validation (only meaningful when both dates present)
   const dateRangeInvalid =
     Boolean(workingFrom && workingTo) && workingFrom > workingTo;
 
@@ -207,12 +207,30 @@ function ExpensesContent() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
+  // Apply handler with strict validation: either both from+to empty OR both filled.
   const handleApply = () => {
-    if (dateRangeInvalid) return;
+    // If only one is filled -> error (user requested this behavior)
+    const fromSet = Boolean(workingFrom && workingFrom.trim());
+    const toSet = Boolean(workingTo && workingTo.trim());
+    if ((fromSet && !toSet) || (!fromSet && toSet)) {
+      t.error("Please fill both From and To, or leave both empty.");
+      return;
+    }
+
+    // If both set check ordering
+    if (fromSet && toSet && workingFrom! > workingTo!) {
+      t.error("Invalid range: 'From' must be before or equal to 'To'.");
+      return;
+    }
+
+    // commit filters
     setAppliedCategoryIds(workingCategoryIds);
     setAppliedFrom(workingFrom || undefined);
     setAppliedTo(workingTo || undefined);
     setDrawerOpen(false);
+
+    // success toast
+    t.success("Filters applied");
   };
 
   const handleClear = () => {
@@ -223,6 +241,8 @@ function ExpensesContent() {
     setAppliedFrom(undefined);
     setAppliedTo(undefined);
     setDrawerOpen(false);
+    // show success toast for clarity
+    t.success("Filters cleared");
   };
 
   // open modal when user clicks delete; show modal instead of confirm()
@@ -235,6 +255,7 @@ function ExpensesContent() {
     if (!deleteTargetId) return;
     try {
       await deleteMutation.mutateAsync(deleteTargetId);
+      t.success("Expense deleted");
     } catch (err: any) {
       // hook shows a toast; we add fallback
       const msg = err?.message ?? "Delete failed";
@@ -317,8 +338,10 @@ function ExpensesContent() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      t.success("CSV downloaded");
     } catch (err: any) {
       console.error("Export failed", err);
+      t.error("Export failed");
       if (err?.response?.data) {
         try {
           const d = err.response.data;
@@ -379,22 +402,32 @@ function ExpensesContent() {
         </div>
       </div>
 
+      {/* DATE RANGE (stacked vertically with headers) */}
       <div className="mb-4">
         <div className="text-sm font-medium mb-2">Date range</div>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            value={workingFrom}
-            onChange={(e) => setWorkingFrom(e.target.value)}
-            className="h-10 px-3 rounded-md border border-border/20 bg-background/50"
-          />
-          <input
-            type="date"
-            value={workingTo}
-            onChange={(e) => setWorkingTo(e.target.value)}
-            className="h-10 px-3 rounded-md border border-border/20 bg-background/50"
-          />
+
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="text-xs font-medium mb-1">From</div>
+            <input
+              type="date"
+              value={workingFrom}
+              onChange={(e) => setWorkingFrom(e.target.value)}
+              className="w-full h-10 px-3 rounded-md border border-border/20 bg-background/50"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs font-medium mb-1">To</div>
+            <input
+              type="date"
+              value={workingTo}
+              onChange={(e) => setWorkingTo(e.target.value)}
+              className="w-full h-10 px-3 rounded-md border border-border/20 bg-background/50"
+            />
+          </div>
         </div>
+
         {dateRangeInvalid && (
           <div className="text-sm text-destructive mt-2">
             Invalid range: from must be before or equal to to.
@@ -403,13 +436,20 @@ function ExpensesContent() {
       </div>
 
       <div className="mt-auto flex gap-2">
-        <Button variant="ghost" className="flex-1" onClick={handleClear}>
+        <Button
+          variant="ghost"
+          className="flex-1 rounded-md border border-border/20"
+          onClick={handleClear}
+        >
           Clear
         </Button>
         <Button
-          className="flex-1"
+          className="flex-1 rounded-md"
           onClick={handleApply}
-          disabled={dateRangeInvalid}
+          // disable only when both dates present and invalid ordering; single-date validation handled in handler
+          disabled={Boolean(
+            workingFrom && workingTo && workingFrom > workingTo
+          )}
         >
           Apply
         </Button>
@@ -655,7 +695,8 @@ function ExpensesContent() {
             id="expenses-filter-panel"
             className="lg:w-80 w-full sticky top-24 h-[70vh] overflow-y-auto"
           >
-            <div className="p-4 bg-card/40 border border-border/30 rounded-md h-full">
+            {/* sharper / more visible border radius and border weight */}
+            <div className="p-4 bg-card/40 border-2 border-border/40 rounded-lg h-full">
               {FilterPanel}
             </div>
           </aside>
@@ -680,7 +721,15 @@ function ExpensesContent() {
       {/* Mobile/Tablet Drawer */}
       {!isDesktop && (
         <SlideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-          <div id="expenses-filter-panel">{FilterPanel}</div>
+          <div
+            id="expenses-filter-panel"
+            // mobile drawer: keep same visible border radius inside drawer
+            className="p-2"
+          >
+            <div className="p-4 bg-card/40 border-2 border-border/40 rounded-lg h-full">
+              {FilterPanel}
+            </div>
+          </div>
         </SlideDrawer>
       )}
     </div>
