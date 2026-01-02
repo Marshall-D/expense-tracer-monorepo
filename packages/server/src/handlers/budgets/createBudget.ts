@@ -68,7 +68,7 @@ const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
       }
     }
 
-    // normalize periodStart to Date (start of day UTC)
+    // normalize periodStart to Date (start of day UTC) — still accepted but NOT part of uniqueness
     const periodDate = periodStart ? new Date(periodStart) : null;
     if (!periodDate) {
       return jsonResponse(400, {
@@ -76,21 +76,19 @@ const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
         message: "periodStart is required and must be a valid date.",
       });
     }
-    // canonicalize to midnight UTC to avoid timezone issues
     const canonicalPeriodStart = new Date(
       Date.UTC(periodDate.getUTCFullYear(), periodDate.getUTCMonth(), 1)
     );
 
-    // enforce uniqueness: one budget per user+categoryId+periodStart
+    // NEW: enforce uniqueness by user + categoryId only (months ignored)
     const conflict = await budgets.findOne({
       userId: new ObjectId(userId),
       categoryId: resolvedCategoryId,
-      periodStart: canonicalPeriodStart,
     });
     if (conflict) {
       return jsonResponse(409, {
         error: "budget_exists",
-        message: "Budget for this category and period already exists.",
+        message: "Budget for this category already exists.",
       });
     }
 

@@ -46,6 +46,9 @@ export default function CategoryEditorPage(): JSX.Element {
       .catch((err: any) => {
         console.error(err);
         if (mounted) setError(err?.message ?? "Failed to load category");
+        t.error(
+          err?.friendlyMessage ?? err?.message ?? "Failed to load category"
+        );
       })
       .finally(() => mounted && setLoading(false));
 
@@ -55,7 +58,6 @@ export default function CategoryEditorPage(): JSX.Element {
   }, [id]);
 
   const invalidateCategories = async () => {
-    // Invalidate all queries whose first segment is queryKeys.categories
     await qc.invalidateQueries({
       predicate: (query) =>
         Array.isArray(query.queryKey) &&
@@ -78,11 +80,20 @@ export default function CategoryEditorPage(): JSX.Element {
 
       // ensure categories list refetches immediately
       await invalidateCategories();
-
       navigate(ROUTES.CATEGORIES);
-    } catch (err: any) {
-      setError(err?.message ?? "Save failed");
-      t.error(err?.message ?? "Save failed");
+    } catch (rawErr: any) {
+      // service throws normalized errors
+      const err = rawErr || {};
+      const friendly =
+        err.friendlyMessage ??
+        err.serverMessage ??
+        err.message ??
+        "Save failed";
+      setError(friendly);
+      t.error(friendly, { duration: 7000 });
+
+      // if server pointed to a field, we leave the form to focus it (CategoryForm will also focus)
+      // don't rethrow
     } finally {
       setSaving(false);
     }
@@ -94,12 +105,17 @@ export default function CategoryEditorPage(): JSX.Element {
     try {
       await categoryService.deleteCategory(id);
       t.success("Category deleted");
-      // ensure categories list refetches immediately
       await invalidateCategories();
       navigate(ROUTES.CATEGORIES);
-    } catch (err: any) {
-      setError(err?.message ?? "Delete failed");
-      t.error(err?.message ?? "Delete failed");
+    } catch (rawErr: any) {
+      const err = rawErr || {};
+      const friendly =
+        err.friendlyMessage ??
+        err.serverMessage ??
+        err.message ??
+        "Delete failed";
+      setError(friendly);
+      t.error(friendly, { duration: 7000 });
     } finally {
       setDeleting(false);
       setDeleteModalOpen(false);

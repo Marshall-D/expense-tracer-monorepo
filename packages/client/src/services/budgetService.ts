@@ -1,4 +1,5 @@
 // packages/client/src/services/budgetService.ts
+
 import api from "@/lib/api";
 import type { Budget } from "@/types/budget";
 
@@ -6,9 +7,9 @@ import type { Budget } from "@/types/budget";
  * Budget payloads
  */
 export type BudgetCreatePayload = {
-  categoryId?: string | null; // optional: can be null for uncategorized
-  category?: string | null; // fallback name
-  periodStart: string; // ISO date string (will be normalized server-side)
+  categoryId?: string | null;
+  category?: string | null;
+  periodStart: string;
   amount: number;
 };
 
@@ -21,8 +22,8 @@ export type BudgetUpdatePayload = Partial<{
 
 /**
  * Fetch list of budgets
- * Query params supported: periodStart (ISO string), categoryId
  */
+
 export const fetchBudgets = async (params?: {
   periodStart?: string;
   categoryId?: string;
@@ -33,39 +34,54 @@ export const fetchBudgets = async (params?: {
   return resp.data?.data ?? [];
 };
 
-/**
- * Get single budget by id
- */
 export const getBudget = async (id: string) => {
   const resp = await api.get<{ data: Budget }>(`/api/budgets/${id}`);
   return resp.data?.data;
 };
 
-/**
- * Create budget
- * Server returns { id: insertedId } (201)
- */
 export const createBudget = async (payload: BudgetCreatePayload) => {
-  const resp = await api.post("/api/budgets", payload);
-  return resp.data; // caller can inspect id if needed
+  try {
+    const resp = await api.post("/api/budgets", payload);
+    return resp.data;
+  } catch (err: any) {
+    const status = err?.response?.status;
+    const serverCode = err?.response?.data?.error;
+    const serverMessage = err?.response?.data?.message;
+
+    if (status === 409 && serverCode === "budget_exists") {
+      throw new Error(
+        "A budget for that category already exists. Edit the existing budget."
+      );
+    }
+
+    if (serverMessage) throw new Error(serverMessage);
+    throw err;
+  }
 };
 
-/**
- * Update budget
- * Server returns { data: { ...updatedBudget } }
- */
 export const updateBudget = async (
   id: string,
   payload: BudgetUpdatePayload
 ) => {
-  const resp = await api.put(`/api/budgets/${id}`, payload);
-  // response shape may be { data: { ... } }
-  return resp.data?.data ?? resp.data;
+  try {
+    const resp = await api.put(`/api/budgets/${id}`, payload);
+    return resp.data?.data ?? resp.data;
+  } catch (err: any) {
+    const status = err?.response?.status;
+    const serverCode = err?.response?.data?.error;
+    const serverMessage = err?.response?.data?.message;
+
+    if (status === 409 && serverCode === "budget_exists") {
+      throw new Error(
+        "A budget for that category already exists. Edit the existing budget."
+      );
+    }
+
+    if (serverMessage) throw new Error(serverMessage);
+    throw err;
+  }
 };
 
-/**
- * Delete budget
- */
 export const deleteBudget = async (id: string) => {
   const resp = await api.delete(`/api/budgets/${id}`);
   return resp.data;

@@ -43,9 +43,15 @@ export default function CategoriesPage() {
       t.success(`Category "${name}" deleted`);
       // refresh categories
       await refetch();
-    } catch (err: any) {
-      console.error("delete category failed", err);
-      t.error(err?.message ?? "Delete failed");
+    } catch (rawErr: any) {
+      const err = rawErr || {};
+      const friendly =
+        err.friendlyMessage ??
+        err.serverMessage ??
+        err.message ??
+        "Delete failed";
+      console.error("delete category failed", rawErr);
+      t.error(friendly, { duration: 7000 });
     } finally {
       setDeleting(null);
       setDeleteModalOpen(false);

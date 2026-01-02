@@ -18,8 +18,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import * as categoryService from "@/services/categoryService"; // used for prefetch
 
+// navItems: mark Dashboard with `end: true` so it's only active on exact /dashboard
 const navItems = [
-  { name: "Dashboard", to: ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { name: "Dashboard", to: ROUTES.DASHBOARD, icon: LayoutDashboard, end: true },
   { name: "Expenses", to: ROUTES.EXPENSES, icon: ReceiptText },
   { name: "Categories", to: ROUTES.CATEGORIES, icon: Tags },
   { name: "Budgets", to: ROUTES.BUDGETS, icon: Wallet },
@@ -31,15 +32,18 @@ function NavItem({
   icon: Icon,
   children,
   onClick,
+  end,
 }: {
   to: string;
   icon: React.ComponentType<any>;
   children: React.ReactNode;
   onClick?: () => void;
+  end?: boolean;
 }) {
   return (
     <NavLink
       to={to}
+      end={end}
       onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
@@ -84,7 +88,7 @@ export default function DashboardLayout(): JSX.Element {
 
         <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => (
-            <NavItem key={item.to} to={item.to} icon={item.icon}>
+            <NavItem key={item.to} to={item.to} icon={item.icon} end={item.end}>
               {item.name}
             </NavItem>
           ))}
@@ -191,6 +195,7 @@ export default function DashboardLayout(): JSX.Element {
                     to={item.to}
                     icon={item.icon}
                     onClick={handleNavigate}
+                    end={item.end}
                   >
                     {item.name}
                   </NavItem>
@@ -227,6 +232,7 @@ export default function DashboardLayout(): JSX.Element {
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  end={item.end}
                   className={({ isActive }) =>
                     `flex-1 flex flex-col items-center justify-center text-xs gap-1 py-1 px-2 rounded-full transition-colors ${
                       isActive

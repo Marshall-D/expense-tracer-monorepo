@@ -60,6 +60,7 @@ const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
     // categoryId update handling (resolve name)
     if (typeof updates.categoryId !== "undefined") {
       if (updates.categoryId === null) {
+        // If you want to support uncategorized budgets, keep this; else you could reject.
         setPayload.categoryId = null;
         setPayload.category = "Uncategorized";
       } else {
@@ -115,40 +116,22 @@ const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
 
     setPayload.updatedAt = new Date();
 
-    // Check uniqueness if categoryId or periodStart changed (we must ensure not colliding with other budgets)
-    if (
-      setPayload.periodStart !== undefined ||
-      setPayload.categoryId !== undefined
-    ) {
-      // load current budget to find its effective values
-      const current = await budgets.findOne({
-        _id: bid,
-        userId: new ObjectId(userId),
-      });
-      if (!current)
-        return jsonResponse(404, {
-          error: "not_found",
-          message: "Budget not found.",
+    // NEW: If categoryId changed (or resolved from category), ensure uniqueness on user+categoryId
+    if (setPayload.hasOwnProperty("categoryId")) {
+      const effectiveCategoryId = setPayload.categoryId;
+      // If effectiveCategoryId is null we skip uniqueness on null (depends on desired behavior)
+      if (effectiveCategoryId !== null) {
+        const clash = await budgets.findOne({
+          _id: { $ne: bid },
+          userId: new ObjectId(userId),
+          categoryId: effectiveCategoryId,
         });
-
-      const effectiveCategoryId = setPayload.hasOwnProperty("categoryId")
-        ? setPayload.categoryId
-        : current.categoryId;
-      const effectivePeriodStart = setPayload.hasOwnProperty("periodStart")
-        ? setPayload.periodStart
-        : current.periodStart;
-
-      const clash = await budgets.findOne({
-        _id: { $ne: bid },
-        userId: new ObjectId(userId),
-        categoryId: effectiveCategoryId,
-        periodStart: effectivePeriodStart,
-      });
-      if (clash) {
-        return jsonResponse(409, {
-          error: "budget_exists",
-          message: "Another budget for that category & period already exists.",
-        });
+        if (clash) {
+          return jsonResponse(409, {
+            error: "budget_exists",
+            message: "Budget for this category already exists.",
+          });
+        }
       }
     }
 

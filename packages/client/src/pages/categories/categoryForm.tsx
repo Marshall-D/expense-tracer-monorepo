@@ -1,11 +1,11 @@
 // packages/client/src/pages/categories/CategoryForm.tsx
-
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Category } from "@/types/categories";
+import { t } from "@/lib/toast";
 
 type Props = {
   initial?: Partial<Category>;
@@ -23,25 +23,46 @@ export default function CategoryForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const nameRef = useRef<HTMLInputElement | null>(null);
+
   // If editing a global category, do not allow changing it in the UI (server will also prevent)
   const isGlobal = initial?.type === "Global";
-
+  // inside CategoryForm.tsx (only the handle function changed)
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) {
-      setError("Name required");
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      const msg = "Name required";
+      setError(msg);
+      nameRef.current?.focus();
       return;
     }
     if (isGlobal) {
-      setError("Global categories cannot be edited.");
+      const msg = "Global categories cannot be edited.";
+      setError(msg);
       return;
     }
+
     setLoading(true);
     try {
-      await onSubmit({ name: name.trim(), color });
+      // IMPORTANT: do NOT show toasts here. Delegate success toast to parent.
+      await onSubmit({ name: trimmed, color });
+      // leave success handling to the parent (which performs the API call).
     } catch (err: any) {
-      setError(err?.message ?? "Failed");
+      // err is expected to be the normalized error object from the service
+      const friendly =
+        err?.friendlyMessage ?? err?.serverMessage ?? err?.message ?? "Failed";
+      setError(friendly);
+
+      // focus the field if the server told us which field is problematic
+      if (err?.field === "name") {
+        nameRef.current?.focus();
+      }
+
+      // rethrow so the caller (parent) can show a toast / handle global errors
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -53,15 +74,16 @@ export default function CategoryForm({
         <CardTitle>{submitLabel} category</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handle} className="space-y-4">
+        <form onSubmit={handle} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
+              ref={nameRef}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              disabled={isGlobal}
+              disabled={isGlobal || loading}
             />
             {isGlobal && (
               <div className="text-sm text-muted-foreground mt-1">
@@ -79,7 +101,7 @@ export default function CategoryForm({
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="w-full h-10 rounded-md"
-                disabled={isGlobal}
+                disabled={isGlobal || loading}
               />
             </div>
             <div>
@@ -97,6 +119,7 @@ export default function CategoryForm({
               type="submit"
               className="rounded-full"
               disabled={loading || isGlobal}
+              aria-busy={loading}
             >
               {loading ? "Saving..." : submitLabel}
             </Button>
