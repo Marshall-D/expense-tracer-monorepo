@@ -5,7 +5,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
-import * as expensesService from "@/services/expenseService";
+import * as expensesService from "@/services";
 import { queryKeys } from "@/lib/queryKeys";
 import type {
   ExpenseCreatePayload,

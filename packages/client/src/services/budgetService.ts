@@ -1,24 +1,11 @@
 // packages/client/src/services/budgetService.ts
 
 import api from "@/lib/api";
-import type { Budget } from "@/types/budget";
-
-/**
- * Budget payloads
- */
-export type BudgetCreatePayload = {
-  categoryId?: string | null;
-  category?: string | null;
-  periodStart: string;
-  amount: number;
-};
-
-export type BudgetUpdatePayload = Partial<{
-  categoryId: string | null;
-  category: string;
-  periodStart: string;
-  amount: number;
-}>;
+import type {
+  Budget,
+  BudgetCreatePayload,
+  BudgetUpdatePayload,
+} from "@/types/budget";
 
 /**
  * Fetch list of budgets

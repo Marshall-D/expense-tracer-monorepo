@@ -4,7 +4,7 @@ import {
   useQueryClient,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { registerApi } from "@/services/authService";
+import { registerApi } from "@/services";
 import { useAuth } from "@/context/authProvider";
 import type { RegisterPayload, AuthResponse } from "@/types/auth";
 import { t } from "@/lib/toast";

@@ -5,13 +5,13 @@ import {
   useQueryClient,
   QueryClient,
 } from "@tanstack/react-query";
-import * as budgetService from "@/services/budgetService";
+import * as budgetService from "@/services";
 import { queryKeys } from "@/lib/queryKeys";
-import type { Budget } from "@/types/budget";
 import type {
+  Budget,
   BudgetCreatePayload,
   BudgetUpdatePayload,
-} from "@/services/budgetService";
+} from "@/types/budget";
 
 /**
  * useBudgets - fetch list of budgets
