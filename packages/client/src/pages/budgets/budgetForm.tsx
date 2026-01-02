@@ -1,9 +1,14 @@
 // packages/client/src/pages/budgets/BudgetForm.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Label,
+  Input,
+  Button,
+} from "@/components";
 import type { Budget } from "@/types";
 import { useCategories } from "@/hooks";
 import { format } from "date-fns";

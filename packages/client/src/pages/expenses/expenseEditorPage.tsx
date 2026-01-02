@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/utils";
 import type { ExpenseCreatePayload, Expense } from "@/types";
-import { Button } from "@/components/ui/button";
+import { Button, InfoModal } from "@/components";
 import ExpenseForm from "./expenseForm";
 import {
   useCreateExpense,
@@ -12,7 +12,6 @@ import {
   useUpdateExpense,
   useDeleteExpense,
 } from "@/hooks";
-import InfoModal from "@/components/ui/infoModal";
 import { t } from "@/lib";
 
 export default function ExpenseEditorPage(): JSX.Element {

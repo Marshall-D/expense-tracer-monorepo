@@ -2,8 +2,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button, Card, CardContent } from "@/components";
 import { ArrowRight, Wallet, PieChart, ShieldCheck } from "lucide-react";
 import { ROUTES } from "@/utils";
 

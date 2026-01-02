@@ -1,14 +1,15 @@
 // packages/client/src/components/budgetCard.tsx
 import { Link } from "react-router-dom";
+
 import {
+  Button,
+  Progress,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+} from "@/components";
 import { Pencil, Trash2, Wallet, AlertCircle } from "lucide-react";
 import { ROUTES } from "@/utils";
 import type { Budget } from "@/types";

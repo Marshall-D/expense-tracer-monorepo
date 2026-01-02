@@ -1,9 +1,15 @@
 // packages/client/src/pages/expenses/ExpenseForm.tsx
 import React, { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+} from "@/components";
 import type { Expense, ExpenseCreatePayload } from "@/types";
 import { useCategories } from "@/hooks";
 import { t } from "@/lib";

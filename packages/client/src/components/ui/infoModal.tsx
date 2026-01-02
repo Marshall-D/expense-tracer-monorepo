@@ -1,5 +1,7 @@
+// packages/client/src/components/ui/infoModal.tsx
+
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components";
 
 /**
  * Simple, reusable information/confirmation modal.
@@ -22,7 +24,7 @@ type Props = {
   onCancel: () => void;
 };
 
-export default function InfoModal({
+export function InfoModal({
   open,
   title = "Confirm",
   message = "Are you sure?",

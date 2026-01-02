@@ -3,12 +3,11 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/utils";
 import type { Category } from "@/types/categories";
-import { Button } from "@/components/ui/button";
+import { Button, InfoModal } from "@/components";
 import * as categoryService from "@/services";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, t } from "@/lib";
 import CategoryForm from "./categoryForm";
-import InfoModal from "@/components/ui/infoModal";
 
 export default function CategoryEditorPage(): JSX.Element {
   const { id } = useParams();

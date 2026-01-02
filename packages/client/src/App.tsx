@@ -16,7 +16,7 @@ import ReportsPage from "@/pages/reports";
 import ExpenseEditorPage from "./pages/expenses/expenseEditorPage";
 import BudgetEditorPage from "./pages/budgets/budgetEditorPage";
 import CategoryEditorPage from "./pages/categories/categoryEditorPage";
-import ProtectedRoute from "@/components/protectedRoute";
+import { ProtectedRoute } from "@/components";
 
 export default function App() {
   return (

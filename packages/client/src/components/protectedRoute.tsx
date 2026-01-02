@@ -10,11 +10,7 @@ import { ROUTES } from "@/utils";
  * - Accepts ReactNode (more flexible than ReactElement).
  * - Stores the attempted location in navigation state so you can redirect back after login if desired.
  */
-export default function ProtectedRoute({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 

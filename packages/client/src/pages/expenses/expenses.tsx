@@ -1,18 +1,22 @@
 // packages/client/src/pages/expenses/expenses.tsx
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+
 import {
+  Badge,
+  InfoModal,
   Table,
+  Card,
+  CardContent,
+  CardHeader,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
+  Input,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+  Button,
+} from "@/components";
 import {
   Search,
   Filter,
@@ -30,7 +34,6 @@ import {
   useExportExpenses,
 } from "@/hooks";
 import { format } from "date-fns";
-import InfoModal from "@/components/ui/infoModal";
 import { t } from "@/lib";
 
 /** Small debounce hook used for search input */

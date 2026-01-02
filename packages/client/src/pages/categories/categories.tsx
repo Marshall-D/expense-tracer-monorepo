@@ -1,14 +1,19 @@
 // packages/client/src/pages/categories/categories.tsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Plus, Tags, Trash2 } from "lucide-react";
 import { ROUTES } from "@/utils";
 import { useCategories } from "@/hooks";
 import * as categoryService from "@/services";
-import InfoModal from "@/components/ui/infoModal";
+import {
+  InfoModal,
+  Card,
+  CardContent,
+  CardHeader,
+  Button,
+  Badge,
+} from "@/components";
 import { t } from "@/lib";
 
 export default function CategoriesPage() {

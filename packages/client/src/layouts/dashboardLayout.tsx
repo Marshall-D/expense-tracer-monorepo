@@ -12,7 +12,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components";
 import { useAuth } from "@/context";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib";

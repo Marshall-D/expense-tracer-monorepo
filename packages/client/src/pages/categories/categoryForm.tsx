@@ -1,10 +1,15 @@
 // packages/client/src/pages/categories/CategoryForm.tsx
 import React, { useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Category } from "@/types/categories";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Label,
+  Input,
+} from "@/components";
+import type { Category } from "@/types";
 
 type Props = {
   initial?: Partial<Category>;

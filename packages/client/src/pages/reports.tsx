@@ -1,12 +1,6 @@
 // packages/client/src/pages/reports.tsx
 import React, { useMemo, useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+
 import {
   AreaChart,
   Area,
@@ -20,12 +14,15 @@ import {
   Cell,
 } from "recharts";
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  useTrends,
-  useCategoryReport,
-  useExportExpenses,
-} from "@/hooks/useReports";
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components";
+import { useTrends, useCategoryReport, useExportExpenses } from "@/hooks";
 import { format } from "date-fns";
 
 function monthLabel(isoMonth: string | null) {

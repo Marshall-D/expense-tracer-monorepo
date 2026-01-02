@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/utils";
 import type { Budget } from "@/types";
-import { Button } from "@/components/ui/button";
+import { Button, InfoModal } from "@/components";
 import {
   useBudget,
   useCreateBudget,
@@ -12,7 +12,6 @@ import {
   useDeleteBudget,
 } from "@/hooks";
 import BudgetForm from "./budgetForm";
-import InfoModal from "@/components/ui/infoModal";
 import { t } from "@/lib";
 
 export default function BudgetEditorPage(): JSX.Element {
