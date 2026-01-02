@@ -7,7 +7,7 @@ import ROUTES from "@/utils/routes";
 import { useBudgets, useDeleteBudget } from "@/hooks";
 import { BudgetCard } from "@/components/budgetCard";
 import InfoModal from "@/components/ui/infoModal";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 export default function BudgetsPage() {
   const { data: budgets = [], isLoading, isError } = useBudgets();

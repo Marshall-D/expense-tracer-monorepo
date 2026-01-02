@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Wallet } from "lucide-react";
 import { useRegister } from "@/hooks";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 export default function RegisterPage(): JSX.Element {
   const navigate = useNavigate();

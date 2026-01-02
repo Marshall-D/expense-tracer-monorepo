@@ -11,7 +11,7 @@ import DashboardPage from "@/pages/dashboard";
 import ExpensesPage from "@/pages/expenses/expenses";
 import BudgetsPage from "@/pages/budgets/budgets";
 import CategoriesPage from "@/pages/categories/categories";
-import DashboardLayout from "@/layouts/dashboardLayout";
+import { DashboardLayout } from "@/layouts";
 import ReportsPage from "@/pages/reports";
 import ExpenseEditorPage from "./pages/expenses/expenseEditorPage";
 import BudgetEditorPage from "./pages/budgets/budgetEditorPage";

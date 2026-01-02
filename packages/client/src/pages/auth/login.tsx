@@ -16,7 +16,7 @@ import {
 import { Wallet } from "lucide-react";
 import ROUTES from "@/utils/routes";
 import { useLogin } from "@/hooks";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();

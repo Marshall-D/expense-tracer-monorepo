@@ -2,13 +2,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import * as reportService from "@/services";
 import { keepPreviousData } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/queryKeys";
+import { queryKeys, t } from "@/lib";
 import type {
   TrendsResponse,
   MonthlyReportResponse,
   ByCategoryResponse,
 } from "@/types/report";
-import { t } from "@/lib/toast";
 
 /**
  * useTrends - fetch last N months trend

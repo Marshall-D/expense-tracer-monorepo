@@ -15,19 +15,10 @@ import {
   removeUser,
   setToken as storageSetToken,
   setUser as storageSetUser,
-} from "@/lib/storage";
+  queryKeys,
+} from "@/lib";
 import ROUTES from "@/utils/routes";
-import { queryKeys } from "@/lib/queryKeys";
-
-type User = { id: string; name: string; email: string } | null;
-
-type AuthContextValue = {
-  user: User;
-  token: string | null;
-  isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
-  logout: () => void;
-};
+import { User, AuthContextValue } from "@/types/auth";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 

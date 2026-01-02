@@ -6,10 +6,9 @@ import type { Category } from "@/types/categories";
 import { Button } from "@/components/ui/button";
 import * as categoryService from "@/services";
 import { useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/queryKeys";
+import { queryKeys, t } from "@/lib";
 import CategoryForm from "./categoryForm";
 import InfoModal from "@/components/ui/infoModal";
-import { t } from "@/lib/toast";
 
 export default function CategoryEditorPage(): JSX.Element {
   const { id } = useParams();

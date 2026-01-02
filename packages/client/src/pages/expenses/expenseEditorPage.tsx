@@ -13,7 +13,7 @@ import {
   useDeleteExpense,
 } from "@/hooks";
 import InfoModal from "@/components/ui/infoModal";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 export default function ExpenseEditorPage(): JSX.Element {
   const { id } = useParams();

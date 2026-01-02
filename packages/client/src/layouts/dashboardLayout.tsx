@@ -13,10 +13,10 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/authProvider";
+import { useAuth } from "@/context";
 import { useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/queryKeys";
-import * as categoryService from "@/services/categoryService"; // used for prefetch
+import { queryKeys } from "@/lib";
+import * as categoryService from "@/services";
 
 // navItems: mark Dashboard with `end: true` so it's only active on exact /dashboard
 const navItems = [
@@ -59,7 +59,7 @@ function NavItem({
   );
 }
 
-export default function DashboardLayout(): JSX.Element {
+export function DashboardLayout(): JSX.Element {
   const [open, setOpen] = useState(false);
   const handleNavigate = () => setOpen(false);
 

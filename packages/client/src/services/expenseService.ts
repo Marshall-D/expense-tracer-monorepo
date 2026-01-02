@@ -1,5 +1,5 @@
 // packages/client/src/services/expenseService.ts
-import api from "@/lib/api";
+import { api } from "@/lib";
 import {
   Expense,
   ExpenseCreatePayload,

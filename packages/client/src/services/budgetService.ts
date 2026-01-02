@@ -1,6 +1,6 @@
 // packages/client/src/services/budgetService.ts
 
-import api from "@/lib/api";
+import { api } from "@/lib";
 import type {
   Budget,
   BudgetCreatePayload,

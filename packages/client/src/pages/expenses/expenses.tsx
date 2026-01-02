@@ -31,7 +31,7 @@ import {
 } from "@/hooks";
 import { format } from "date-fns";
 import InfoModal from "@/components/ui/infoModal";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 /** Small debounce hook used for search input */
 function useDebouncedValue<T>(value: T, delayMs = 300) {

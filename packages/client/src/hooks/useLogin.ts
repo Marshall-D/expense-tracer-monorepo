@@ -2,10 +2,9 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { loginApi } from "@/services";
-import { useAuth } from "@/context/authProvider";
+import { useAuth } from "@/context";
 import type { LoginPayload, AuthResponse } from "@/types/auth";
-import { queryKeys } from "@/lib/queryKeys";
-import { t } from "@/lib/toast"; // <--- toast helper
+import { queryKeys, t } from "@/lib";
 
 /**
  * useLogin

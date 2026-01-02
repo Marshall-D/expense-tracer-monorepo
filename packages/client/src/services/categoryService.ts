@@ -1,5 +1,5 @@
 // packages/client/src/services/categoryService.ts
-import api from "@/lib/api";
+import { api } from "@/lib";
 import { Category } from "@/types/categories";
 
 /**

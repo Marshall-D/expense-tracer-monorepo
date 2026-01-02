@@ -13,7 +13,7 @@ import {
 } from "@/hooks";
 import BudgetForm from "./budgetForm";
 import InfoModal from "@/components/ui/infoModal";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 export default function BudgetEditorPage(): JSX.Element {
   const { id } = useParams(); // id comes from route /dashboard/budgets/:id

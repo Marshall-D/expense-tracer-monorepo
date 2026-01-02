@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Tags, Trash2 } from "lucide-react";
 import ROUTES from "@/utils/routes";
 import { useCategories } from "@/hooks";
-import * as categoryService from "@/services/categoryService";
+import * as categoryService from "@/services";
 import InfoModal from "@/components/ui/infoModal";
-import { t } from "@/lib/toast";
+import { t } from "@/lib";
 
 export default function CategoriesPage() {
   const {

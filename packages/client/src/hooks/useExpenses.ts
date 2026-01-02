@@ -6,13 +6,12 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import * as expensesService from "@/services";
-import { queryKeys } from "@/lib/queryKeys";
+import { queryKeys, t } from "@/lib";
 import type {
   ExpenseCreatePayload,
   ExpensesListResponse,
   Expense,
 } from "@/types/expense";
-import { t } from "@/lib/toast";
 
 /**
  * useExpenses - fetch paginated expenses list

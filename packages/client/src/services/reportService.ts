@@ -1,5 +1,5 @@
 // packages/client/src/services/reportService.ts
-import api from "@/lib/api";
+import { api } from "@/lib";
 import {
   ByCategoryResponse,
   MonthlyReportResponse,
