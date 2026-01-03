@@ -33,7 +33,7 @@ function nextNMonths(n = 6) {
   return arr;
 }
 
-export default function BudgetForm({
+export function BudgetForm({
   initial,
   onSubmit,
   submitLabel = "Save",

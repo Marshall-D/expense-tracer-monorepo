@@ -16,7 +16,7 @@ import {
 } from "@/components";
 import { t } from "@/lib";
 
-export default function CategoriesPage() {
+export function CategoriesPage() {
   const {
     data: categories = [],
     isLoading,

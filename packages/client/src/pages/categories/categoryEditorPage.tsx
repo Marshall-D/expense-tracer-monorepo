@@ -7,9 +7,9 @@ import { Button, InfoModal } from "@/components";
 import * as categoryService from "@/services";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, t } from "@/lib";
-import CategoryForm from "./categoryForm";
+import { CategoryForm } from "./categoryForm";
 
-export default function CategoryEditorPage(): JSX.Element {
+export function CategoryEditorPage(): JSX.Element {
   const { id } = useParams();
   const isNew = !id;
   const navigate = useNavigate();

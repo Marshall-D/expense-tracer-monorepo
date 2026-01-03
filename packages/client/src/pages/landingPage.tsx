@@ -6,7 +6,7 @@ import { Button, Card, CardContent } from "@/components";
 import { ArrowRight, Wallet, PieChart, ShieldCheck } from "lucide-react";
 import { ROUTES } from "@/utils";
 
-export default function LandingPage(): JSX.Element {
+export function LandingPage(): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b border-border/40 backdrop-blur-md sticky top-0 z-50">

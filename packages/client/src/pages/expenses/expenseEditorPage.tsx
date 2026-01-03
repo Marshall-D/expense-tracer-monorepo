@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/utils";
 import type { ExpenseCreatePayload, Expense } from "@/types";
 import { Button, InfoModal } from "@/components";
-import ExpenseForm from "./expenseForm";
+import { ExpenseForm } from "./expenseForm";
 import {
   useCreateExpense,
   useExpense,
@@ -14,7 +14,7 @@ import {
 } from "@/hooks";
 import { t } from "@/lib";
 
-export default function ExpenseEditorPage(): JSX.Element {
+export function ExpenseEditorPage(): JSX.Element {
   const { id } = useParams();
   const isNew = !id;
   const navigate = useNavigate();

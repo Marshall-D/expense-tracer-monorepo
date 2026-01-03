@@ -20,7 +20,7 @@ type Props = {
   submitLabel?: string;
 };
 
-export default function ExpenseForm({
+export function ExpenseForm({
   initial = {},
   onSubmit,
   submitLabel = "Save",

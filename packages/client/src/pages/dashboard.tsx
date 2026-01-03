@@ -74,7 +74,7 @@ function monthToRange(isoMonth: string) {
   return [format(start, "yyyy-MM-dd"), format(end, "yyyy-MM-dd")];
 }
 
-export default function DashboardPage() {
+export function DashboardPage() {
   const monthsAgo = 6;
 
   // trends for last N months (NGN-only)

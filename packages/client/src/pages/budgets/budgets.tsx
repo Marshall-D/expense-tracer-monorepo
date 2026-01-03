@@ -7,7 +7,7 @@ import { useBudgets, useDeleteBudget } from "@/hooks";
 import { InfoModal, BudgetCard, Button } from "@/components";
 import { t } from "@/lib";
 
-export default function BudgetsPage() {
+export function BudgetsPage() {
   const { data: budgets = [], isLoading, isError } = useBudgets();
   const deleteMutation = useDeleteBudget();
   const isDeleting = deleteMutation.status === "pending";

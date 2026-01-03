@@ -11,10 +11,10 @@ import {
   useUpdateBudget,
   useDeleteBudget,
 } from "@/hooks";
-import BudgetForm from "./budgetForm";
+import { BudgetForm } from "./budgetForm";
 import { t } from "@/lib";
 
-export default function BudgetEditorPage(): JSX.Element {
+export function BudgetEditorPage(): JSX.Element {
   const { id } = useParams(); // id comes from route /dashboard/budgets/:id
   const isNew = !id;
   const navigate = useNavigate();

@@ -18,7 +18,7 @@ import { ROUTES } from "@/utils";
 import { useLogin } from "@/hooks";
 import { t } from "@/lib";
 
-export default function LoginPage(): JSX.Element {
+export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const mutation = useLogin();

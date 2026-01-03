@@ -56,7 +56,7 @@ function monthToRange(isoMonth: string) {
   return [format(start, "yyyy-MM-dd"), format(end, "yyyy-MM-dd")];
 }
 
-export default function ReportsPage() {
+export function ReportsPage() {
   // trends window: fixed to last 6 months
   const monthsAgo = 6;
 

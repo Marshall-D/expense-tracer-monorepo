@@ -19,7 +19,7 @@ import { Wallet } from "lucide-react";
 import { useRegister } from "@/hooks";
 import { t } from "@/lib";
 
-export default function RegisterPage(): JSX.Element {
+export function RegisterPage(): JSX.Element {
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const mutation = useRegister();

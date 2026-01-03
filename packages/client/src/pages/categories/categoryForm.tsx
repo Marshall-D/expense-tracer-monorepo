@@ -17,7 +17,7 @@ type Props = {
   submitLabel?: string;
 };
 
-export default function CategoryForm({
+export function CategoryForm({
   initial = {},
   onSubmit,
   submitLabel = "Save",

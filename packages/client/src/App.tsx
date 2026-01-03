@@ -4,18 +4,13 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import { ROUTES } from "@/utils";
 
-import LoginPage from "@/pages/auth/login";
-import RegisterPage from "@/pages/auth/register";
-import LandingPage from "@/pages/landingPage";
-import DashboardPage from "@/pages/dashboard";
-import ExpensesPage from "@/pages/expenses/expenses";
-import BudgetsPage from "@/pages/budgets/budgets";
-import CategoriesPage from "@/pages/categories/categories";
+import { LoginPage, RegisterPage } from "@/pages/auth";
+
+import { ExpensesPageWrapper, ExpenseEditorPage } from "@/pages/expenses";
+import { BudgetsPage, BudgetEditorPage } from "@/pages/budgets/";
+import { CategoriesPage, CategoryEditorPage } from "@/pages/categories";
 import { DashboardLayout } from "@/layouts";
-import ReportsPage from "@/pages/reports";
-import ExpenseEditorPage from "./pages/expenses/expenseEditorPage";
-import BudgetEditorPage from "./pages/budgets/budgetEditorPage";
-import CategoryEditorPage from "./pages/categories/categoryEditorPage";
+import { ReportsPage, LandingPage, DashboardPage } from "@/pages";
 import { ProtectedRoute } from "@/components";
 
 export default function App() {
@@ -37,7 +32,7 @@ export default function App() {
         <Route index element={<DashboardPage />} />
 
         {/* Expenses */}
-        <Route path="expenses" element={<ExpensesPage />} />
+        <Route path="expenses" element={<ExpensesPageWrapper />} />
         <Route path="expenses/new" element={<ExpenseEditorPage />} />
         <Route path="expenses/:id" element={<ExpenseEditorPage />} />
 

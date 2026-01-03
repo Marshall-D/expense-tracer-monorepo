@@ -97,7 +97,7 @@ function SlideDrawer({
   );
 }
 
-export default function ExpensesPageWrapper() {
+export function ExpensesPageWrapper() {
   return (
     <Suspense fallback={null}>
       <ExpensesContent />
