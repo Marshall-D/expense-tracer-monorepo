@@ -1,20 +1,33 @@
 // packages/server/src/handlers/updateExpenses.ts
+/**
+ * PUT /api/expenses/{id}
+ *
+ * Responsibilities:
+ *  - Validate path id is present and is a valid ObjectId
+ *  - Validate request body (updateExpenseSchema)
+ *  - Resolve category/categoryId appropriately (validate category exists and is accessible)
+ *  - Build $set payload and run findOneAndUpdate returning the updated document
+ *
+ * Behaviour preserved from original implementation. Uses central jsonResponse and
+ * emptyOptionsResponse helpers for consistent CORS+JSON responses.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { parseAndValidate } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 import { updateExpenseSchema } from "../../lib/validators";
 
-/**
- * PUT /api/expenses/{id}
- */
 const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  // Handle CORS preflight
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
+  // path param id resolution (accept id, ID, _id)
   const pathParams = (event.pathParameters || {}) as Record<
     string,
     string | undefined
@@ -26,6 +39,7 @@ const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
       message: "Expense id is required in path.",
     });
 
+  // validate ObjectId
   let expenseObjectId: ObjectId;
   try {
     expenseObjectId = new ObjectId(id);
@@ -36,6 +50,7 @@ const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
     });
   }
 
+  // validate request body
   const parsed = parseAndValidate(updateExpenseSchema, event);
   if (!parsed.ok) return parsed.response;
   const updates = parsed.data as any;
@@ -48,19 +63,19 @@ const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
   }
 
   const db = await getDb();
-  if (!db) {
+  if (!db)
     return jsonResponse(503, {
       error: "database_unavailable",
       message: "No database configured.",
     });
-  }
 
   try {
     const expenses = db.collection("expenses");
     const categoriesColl = db.collection("categories");
 
-    // Build set payload
+    // Build set payload (immutability: create a new object)
     const setPayload: any = {};
+
     if (typeof updates.amount !== "undefined")
       setPayload.amount = updates.amount;
     if (typeof updates.currency !== "undefined")
@@ -70,13 +85,12 @@ const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
     if (typeof updates.date !== "undefined")
       setPayload.date = updates.date ? new Date(updates.date) : null;
 
-    // Handle categoryId update if provided
+    // handle categoryId explicit update (can be null to remove)
     if (typeof updates.categoryId !== "undefined") {
       if (updates.categoryId === null) {
         setPayload.categoryId = null;
         setPayload.category = "Uncategorized";
       } else {
-        // validate categoryId
         try {
           const cid = new ObjectId(updates.categoryId);
           const cat = await categoriesColl.findOne({
@@ -99,7 +113,7 @@ const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
         }
       }
     } else if (typeof updates.category !== "undefined") {
-      // category name update (try to resolve)
+      // category name update (try to resolve user-specific or global)
       const cat =
         (await categoriesColl.findOne({
           name: updates.category,
@@ -114,7 +128,7 @@ const updateExpensesImpl: APIGatewayProxyHandler = async (event) => {
         setPayload.categoryId = cat._id;
         setPayload.category = cat.name;
       } else {
-        // not found -> keep string only, clear categoryId
+        // unknown category name: keep string and clear categoryId
         setPayload.categoryId = null;
         setPayload.category = updates.category;
       }

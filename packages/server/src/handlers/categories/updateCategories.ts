@@ -1,14 +1,27 @@
 // packages/server/src/handlers/updateCategories.ts
+/**
+ * PUT /api/categories/{id}
+ *
+ * Responsibilities:
+ *  - Validate path id and ensure authenticated user
+ *  - Validate request body (updateCategorySchema)
+ *  - Prevent name collisions (case-insensitive) with global or user's own categories
+ *  - Only allow updating categories owned by the user (global categories are immutable)
+ *
+ * Behaviour preserved from original implementation. Uses centralized jsonResponse
+ * and emptyOptionsResponse for consistent CORS + response shape.
+ */
 
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { parseAndValidate } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { updateCategorySchema } from "../../lib/validators";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const updateCategoriesImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
@@ -55,7 +68,6 @@ const updateCategoriesImpl: APIGatewayProxyHandler = async (event) => {
     const categories = db.collection("categories");
 
     // If updating name, normalize and ensure it doesn't collide (case-insensitive)
-    // only check against global categories (userId: null) and categories owned by this user.
     if (typeof updates.name !== "undefined") {
       const newName = String(updates.name).trim();
       // Check for existing category with same name (case-insensitive) that is NOT this category
@@ -73,6 +85,7 @@ const updateCategoriesImpl: APIGatewayProxyHandler = async (event) => {
           message: "Category with that name already exists (global or yours).",
         });
       }
+      // normalize input in-place (safe because updates is a new object from parse)
       updates.name = newName;
     }
 

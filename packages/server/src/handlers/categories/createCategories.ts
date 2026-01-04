@@ -1,15 +1,26 @@
 // packages/server/src/handlers/createCategories.ts
+/**
+ * POST /api/categories
+ *
+ * Responsibilities:
+ *  - Validate request body (createCategorySchema)
+ *  - Prevent duplicates against global categories or this user's categories (case-insensitive)
+ *  - Insert a new user-owned (Custom) category and return its metadata
+ *
+ * Behaviour preserved.
+ */
 
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { parseAndValidate } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { createCategorySchema } from "../../lib/validators";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const createCategoryImpl: APIGatewayProxyHandler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
-    return jsonResponse(204, {});
+    return emptyOptionsResponse();
   }
 
   const parsed = parseAndValidate(createCategorySchema, event);
@@ -34,7 +45,6 @@ const createCategoryImpl: APIGatewayProxyHandler = async (event) => {
     const categories = db.collection("categories");
 
     // Prevent duplicates against global categories or this user's categories (case-insensitive).
-    // This allows other users to create the same name (they'll have different userId).
     const existing = await categories.findOne(
       {
         name,
@@ -66,7 +76,7 @@ const createCategoryImpl: APIGatewayProxyHandler = async (event) => {
         id: String(res.insertedId),
         name,
         color: color ?? null,
-        userId,
+        userId, // original behaviour returned raw userId string
         type: "Custom",
       },
     });

@@ -1,12 +1,23 @@
 // packages/server/src/handlers/getBudget.ts
+/**
+ * GET /api/budgets/{id}
+ *
+ * Responsibilities:
+ *  - Validate path id and authentication
+ *  - Return normalized budget document for the authenticated user
+ *
+ * Behaviour preserved.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const getBudgetImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
+
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 

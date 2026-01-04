@@ -1,10 +1,22 @@
 // packages/server/src/handlers/getAllExpenses.ts
+/**
+ * GET /api/expenses
+ *
+ * Responsibilities:
+ *  - Validate & parse query params (from, to, category, categoryId, categoryIds, q, limit, page)
+ *  - Build Mongo filter with precedence rules (categoryIds > categoryId > category)
+ *  - Apply pagination and return total + page + limit + data
+ *
+ * Note: uses parseQuery helper to normalise query validation errors and jsonResponse for replies.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
+import { parseQuery } from "../../lib/query";
 
 /**
  * Query schema for GET /api/expenses
@@ -70,24 +82,14 @@ function escapeRegex(input: string) {
 }
 
 const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
-  const rawQs = (event.queryStringParameters || {}) as Record<string, string>;
-  const parsed = getAllExpensesQuerySchema.safeParse(rawQs);
-  if (!parsed.success) {
-    const details = parsed.error.issues.map((e) => ({
-      path: Array.isArray(e.path) ? e.path.join(".") : "",
-      message: e.message,
-    }));
-    return jsonResponse(400, {
-      error: "validation_error",
-      message: "Invalid query parameters",
-      details,
-    });
-  }
+  // use central parseQuery to validate query params
+  const parsed = parseQuery(getAllExpensesQuerySchema, event);
+  if (!parsed.ok) return parsed.response;
 
   const {
     from,
@@ -105,12 +107,11 @@ const getAllExpensesImpl: APIGatewayProxyHandler = async (event) => {
   const skip = (page - 1) * limit;
 
   const db = await getDb();
-  if (!db) {
+  if (!db)
     return jsonResponse(503, {
       error: "database_unavailable",
       message: "No database configured.",
     });
-  }
 
   try {
     const expenses = db.collection("expenses");

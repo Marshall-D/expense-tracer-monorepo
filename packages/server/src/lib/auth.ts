@@ -1,4 +1,10 @@
 // packages/server/src/lib/auth.ts
+/**
+ * Token helpers for handlers/middleware that need to extract/verify tokens.
+ * This file focuses on token extraction and verification and returns null on
+ * invalid tokens (non-throwing).
+ */
+
 import jwt from "jsonwebtoken";
 
 export type JwtPayload = {
@@ -8,6 +14,10 @@ export type JwtPayload = {
   exp?: number;
 };
 
+/**
+ * Extracts a Bearer token from an Authorization header value.
+ * Returns null if the header is missing or malformed.
+ */
 export function getTokenFromHeader(
   auth?: string | null | undefined
 ): string | null {
@@ -20,8 +30,8 @@ export function getTokenFromHeader(
 }
 
 /**
- * Verify JWT and return the payload or null.
- * Does NOT throw on invalid token; logs server-side errors for visibility.
+ * Verify JWT and return payload or null for invalid/expired tokens.
+ * Does NOT throw on invalid tokens (helps keep handlers simple and non-throwing).
  */
 export function verifyToken(token: string): JwtPayload | null {
   const secret = process.env.JWT_SECRET;
@@ -32,13 +42,10 @@ export function verifyToken(token: string): JwtPayload | null {
 
   try {
     const decoded = jwt.verify(token, secret) as JwtPayload;
-    if (!decoded || !decoded.userId) {
-      return null;
-    }
+    if (!decoded || !decoded.userId) return null;
     return decoded;
   } catch (err) {
-    // Token invalid/expired
-    // Log at debug level for troubleshooting in dev; avoid sensitive output.
+    // Keep failure non-throwing; log for debug.
     console.debug(
       "verifyToken: token verification failed",
       (err as Error).message

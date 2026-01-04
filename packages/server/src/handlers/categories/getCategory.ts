@@ -1,13 +1,22 @@
 // packages/server/src/handlers/getCategory.ts
+/**
+ * GET /api/categories/{id}
+ *
+ * Responsibilities:
+ *  - Validate path id and user authentication
+ *  - Return the category if it's global or belongs to the user
+ *
+ * Behaviour unchanged; uses central jsonResponse for consistent responses.
+ */
 
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const getCategoryImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });

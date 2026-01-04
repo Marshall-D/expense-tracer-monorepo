@@ -1,14 +1,28 @@
 // packages/server/src/handlers/createBudget.ts
+/**
+ * POST /api/budgets
+ *
+ * Responsibilities:
+ *  - Validate request body (createBudgetSchema)
+ *  - Resolve category/categoryId and ensure accessibility
+ *  - Normalize periodStart to canonical start of month
+ *  - Enforce uniqueness (user + categoryId)
+ *  - Insert budget document and return inserted id
+ *
+ * Behaviour preserved.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { parseAndValidate } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { createBudgetSchema } from "../../lib/validators";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
-    return jsonResponse(204, {});
+    return emptyOptionsResponse();
   }
 
   const parsed = parseAndValidate(createBudgetSchema, event);
@@ -68,7 +82,7 @@ const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
       }
     }
 
-    // normalize periodStart to Date (start of day UTC) — still accepted but NOT part of uniqueness
+    // normalize periodStart to Date (start of month UTC)
     const periodDate = periodStart ? new Date(periodStart) : null;
     if (!periodDate) {
       return jsonResponse(400, {
@@ -80,7 +94,7 @@ const createBudgetImpl: APIGatewayProxyHandler = async (event) => {
       Date.UTC(periodDate.getUTCFullYear(), periodDate.getUTCMonth(), 1)
     );
 
-    // NEW: enforce uniqueness by user + categoryId only (months ignored)
+    // enforce uniqueness by user + categoryId only
     const conflict = await budgets.findOne({
       userId: new ObjectId(userId),
       categoryId: resolvedCategoryId,

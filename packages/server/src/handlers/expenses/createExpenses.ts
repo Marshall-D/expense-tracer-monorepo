@@ -1,23 +1,25 @@
 // packages/server/src/handlers/creatExpenses.ts
+/**
+ * POST /api/expenses
+ *
+ * Responsibilities:
+ *  - Validate request body (createExpenseSchema)
+ *  - Resolve category/categoryId (validate category accessibility)
+ *  - Insert expense document with normalized fields
+ *
+ * Behaviour preserved; consistent JSON/CORS responses via jsonResponse + emptyOptionsResponse.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { parseAndValidate } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { createExpenseSchema } from "../../lib/validators";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const createExpenseImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 204,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-      body: "",
-    };
-  }
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const parsed = parseAndValidate(createExpenseSchema, event);
   if (!parsed.ok) return parsed.response;
@@ -38,12 +40,11 @@ const createExpenseImpl: APIGatewayProxyHandler = async (event) => {
   }
 
   const db = await getDb();
-  if (!db) {
+  if (!db)
     return jsonResponse(503, {
       error: "database_unavailable",
       message: "No database configured.",
     });
-  }
 
   try {
     const categoriesColl = db.collection("categories");

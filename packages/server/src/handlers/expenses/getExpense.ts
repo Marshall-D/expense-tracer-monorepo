@@ -1,12 +1,22 @@
 // packages/server/src/handlers/getExpense.ts
+/**
+ * GET /api/expenses/{id}
+ *
+ * Responsibilities:
+ *  - Validate path id and load the expense for the authenticated user
+ *  - Return normalized expense payload
+ *
+ * Behaviour unchanged; uses jsonResponse + emptyOptionsResponse for responses.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const getExpenseImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
@@ -34,12 +44,11 @@ const getExpenseImpl: APIGatewayProxyHandler = async (event) => {
   }
 
   const db = await getDb();
-  if (!db) {
+  if (!db)
     return jsonResponse(503, {
       error: "database_unavailable",
       message: "No database configured.",
     });
-  }
 
   try {
     const expenses = db.collection("expenses");

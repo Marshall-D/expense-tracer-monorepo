@@ -1,13 +1,22 @@
 // packages/server/src/handlers/getAllCategories.ts
+/**
+ * GET /api/categories
+ *
+ * Responsibilities:
+ *  - Return both global and user-specific categories for the authenticated user
+ *  - Sort: user-owned first (userId desc), then by name
+ *
+ * Behaviour preserved. Uses centralized jsonResponse/emptyOptionsResponse.
+ */
 
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const getAllCategoriesImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
 
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });

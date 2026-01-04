@@ -1,10 +1,22 @@
 // packages/server/src/handlers/monthlyReports.ts
+/**
+ * Monthly report handler — returns totals and top categories for a given year/month.
+ *
+ * Responsibilities:
+ *  - Validate year/month query
+ *  - Compute canonical UTC month boundaries
+ *  - Aggregate totals by currency and compute top categories
+ *
+ * Preserves original behaviour and response shapes.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
+import { parseQuery } from "../../lib/query";
 
 const querySchema = z.object({
   year: z
@@ -18,35 +30,27 @@ const querySchema = z.object({
 });
 
 const reportsMonthlyImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
+
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
-  const qs = (event.queryStringParameters || {}) as Record<
-    string,
-    string | undefined
-  >;
-  const parsed = querySchema.safeParse(qs);
-  if (!parsed.success) {
-    const details = parsed.error.issues.map((e) => ({
-      path: Array.isArray(e.path) ? e.path.join(".") : "",
-      message: e.message,
-    }));
-    return jsonResponse(400, {
-      error: "validation_error",
-      message: "Invalid query",
-      details,
-    });
-  }
+  const parsed = parseQuery(querySchema, event);
+  if (!parsed.ok) return parsed.response;
 
   const { year, month } = parsed.data;
 
-  // canonical UTC month boundaries
+  // canonical UTC month boundaries (start inclusive, end exclusive)
   const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)); // exclusive
+  const end = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
 
   const db = await getDb();
-  if (!db) return jsonResponse(503, { error: "database_unavailable" });
+  if (!db)
+    return jsonResponse(503, {
+      error: "database_unavailable",
+      message:
+        "No database configured. For local dev copy .env.example -> .env and set MONGO_URI; for production set the secret in SSM/Secrets Manager.",
+    });
 
   try {
     const expenses = db.collection("expenses");

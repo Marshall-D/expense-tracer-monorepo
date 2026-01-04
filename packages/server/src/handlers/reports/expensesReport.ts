@@ -1,11 +1,24 @@
 // packages/server/src/handlers/reports/expensesReport.ts
+/**
+ * Expenses report export (CSV).
+ *
+ * Responsibilities:
+ *  - Validate 'from', 'to', 'format' query params
+ *  - Fetch matching expenses (with MAX_ROWS safety limit)
+ *  - Render CSV with UTF-8 BOM and return it with Content-Disposition
+ *
+ * Notes:
+ *  - CSV generation preserved exactly (including blank spacer lines and header).
+ *  - Error responses use jsonResponse for consistency.
+ */
 
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
+import { parseQuery } from "../../lib/query";
 
 const querySchema = z.object({
   from: z
@@ -20,18 +33,15 @@ const querySchema = z.object({
 /**
  * Escapes and builds one CSV field row.
  * Uses ', ' (comma + space) as the separator to increase visual spacing.
- * Fields containing commas/quotes/newlines are quoted per CSV rules.
  */
 function toCSVRow(arr: (string | number | null | undefined)[]) {
   const cells = arr.map((v) => {
     if (v === null || v === undefined) return "";
     const s = String(v);
     const escaped = s.replace(/"/g, '""');
-    // If the value contains a comma, quote, newline or CR, wrap in quotes
     if (/[",\n\r]/.test(s)) return `"${escaped}"`;
     return escaped;
   });
-  // join with comma + space for more readable spacing
   return cells.join(", ");
 }
 
@@ -41,7 +51,6 @@ function formatDateOnlyUTC(input: any) {
   if (!input) return "";
   try {
     const d = new Date(input);
-    // return YYYY-MM-DD in UTC
     return d.toISOString().slice(0, 10);
   } catch {
     return String(input);
@@ -51,7 +60,6 @@ function formatDateOnlyUTC(input: any) {
 function formatAmount(n: any) {
   const num = Number(n ?? 0);
   if (Number.isNaN(num)) return String(n ?? "");
-  // show two decimals and thousands separators, e.g. 12,345.00
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -59,25 +67,13 @@ function formatAmount(n: any) {
 }
 
 const expensesExportImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
+
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
-  const qs = (event.queryStringParameters || {}) as Record<
-    string,
-    string | undefined
-  >;
-  const parsed = querySchema.safeParse(qs);
-  if (!parsed.success) {
-    const details = parsed.error.issues.map((e) => ({
-      path: Array.isArray(e.path) ? e.path.join(".") : String(e.path ?? ""),
-      message: e.message,
-    }));
-    return jsonResponse(400, {
-      error: "validation_error",
-      details,
-    });
-  }
+  const parsed = parseQuery(querySchema, event);
+  if (!parsed.ok) return parsed.response;
 
   const { from, to, format } = parsed.data;
 
@@ -94,7 +90,12 @@ const expensesExportImpl: APIGatewayProxyHandler = async (event) => {
     end.setUTCDate(end.getUTCDate() + 1);
 
   const db = await getDb();
-  if (!db) return jsonResponse(503, { error: "database_unavailable" });
+  if (!db)
+    return jsonResponse(503, {
+      error: "database_unavailable",
+      message:
+        "No database configured. For local dev copy .env.example -> .env and set MONGO_URI; for production set the secret in SSM/Secrets Manager.",
+    });
 
   try {
     const expenses = db.collection("expenses");
@@ -115,7 +116,6 @@ const expensesExportImpl: APIGatewayProxyHandler = async (event) => {
     const header = ["Date", "Description", "Category", "Amount"];
 
     const rows: string[] = [];
-    // header row (with spaces after commas because toCSVRow uses ', ')
     rows.push(toCSVRow(header));
     // blank spacer row (visual spacing between header and data)
     rows.push("");

@@ -1,13 +1,28 @@
 // packages/server/src/handlers/updateBudget.ts
+/**
+ * PUT /api/budgets/{id}
+ *
+ * Responsibilities:
+ *  - Validate path id and authentication
+ *  - Validate request body (updateBudgetSchema)
+ *  - Resolve category/categoryId and validate accessibility
+ *  - Normalize periodStart and ensure uniqueness rules
+ *  - Update budget and return normalized response
+ *
+ * Behaviour preserved from original implementation.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { parseAndValidate, jsonResponse } from "../../lib/validation";
+import { parseAndValidate } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { updateBudgetSchema } from "../../lib/validators";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 
 const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
+
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
@@ -53,14 +68,16 @@ const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
     const budgets = db.collection("budgets");
     const categories = db.collection("categories");
 
+    // Build immutable setPayload object
     const setPayload: any = {};
+
     if (typeof updates.amount !== "undefined")
       setPayload.amount = updates.amount;
 
     // categoryId update handling (resolve name)
     if (typeof updates.categoryId !== "undefined") {
       if (updates.categoryId === null) {
-        // If you want to support uncategorized budgets, keep this; else you could reject.
+        // allow removing category association
         setPayload.categoryId = null;
         setPayload.category = "Uncategorized";
       } else {
@@ -85,13 +102,14 @@ const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
         }
       }
     } else if (typeof updates.category !== "undefined") {
-      // try resolving by name
+      // try resolving by name (user-specific then global)
       const cat =
         (await categories.findOne({
           name: updates.category,
           userId: new ObjectId(userId),
         })) ||
         (await categories.findOne({ name: updates.category, userId: null }));
+
       if (cat) {
         setPayload.categoryId = cat._id;
         setPayload.category = cat.name;
@@ -101,6 +119,7 @@ const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
       }
     }
 
+    // periodStart normalization (start of month UTC)
     if (typeof updates.periodStart !== "undefined") {
       const p = new Date(updates.periodStart);
       if (Number.isNaN(p.getTime())) {
@@ -116,10 +135,9 @@ const updateBudgetImpl: APIGatewayProxyHandler = async (event) => {
 
     setPayload.updatedAt = new Date();
 
-    // NEW: If categoryId changed (or resolved from category), ensure uniqueness on user+categoryId
-    if (setPayload.hasOwnProperty("categoryId")) {
+    // If categoryId changed/was provided, ensure uniqueness for user + categoryId
+    if (Object.prototype.hasOwnProperty.call(setPayload, "categoryId")) {
       const effectiveCategoryId = setPayload.categoryId;
-      // If effectiveCategoryId is null we skip uniqueness on null (depends on desired behavior)
       if (effectiveCategoryId !== null) {
         const clash = await budgets.findOne({
           _id: { $ne: bid },

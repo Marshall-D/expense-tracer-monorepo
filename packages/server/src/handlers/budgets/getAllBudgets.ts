@@ -1,10 +1,21 @@
 // packages/server/src/handlers/getAllBudgets.ts
+/**
+ * GET /api/budgets
+ *
+ * Responsibilities:
+ *  - Validate query params (periodStart, categoryId)
+ *  - Return all budgets for authenticated user, filtered by query if provided
+ *
+ * Behaviour preserved.
+ */
+
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { requireAuth } from "../../lib/requireAuth";
-import { jsonResponse } from "../../lib/validation";
+import { jsonResponse, emptyOptionsResponse } from "../../lib/response";
 import { getDb } from "../../lib/mongo";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
+import { parseQuery } from "../../lib/query";
 
 const querySchema = z.object({
   periodStart: z
@@ -22,23 +33,13 @@ const querySchema = z.object({
 });
 
 const getAllBudgetsImpl: APIGatewayProxyHandler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return jsonResponse(204, {});
+  if (event.httpMethod === "OPTIONS") return emptyOptionsResponse();
+
   const userId = (event.requestContext as any)?.authorizer?.userId;
   if (!userId) return jsonResponse(401, { error: "unauthorized" });
 
-  const rawQs = (event.queryStringParameters || {}) as Record<string, string>;
-  const parsed = querySchema.safeParse(rawQs);
-  if (!parsed.success) {
-    const details = parsed.error.issues.map((e) => ({
-      path: Array.isArray(e.path) ? e.path.join(".") : String(e.path ?? ""),
-      message: e.message,
-    }));
-    return jsonResponse(400, {
-      error: "validation_error",
-      message: "Invalid query",
-      details,
-    });
-  }
+  const parsed = parseQuery(querySchema, event);
+  if (!parsed.ok) return parsed.response;
 
   const { periodStart, categoryId } = parsed.data;
 
