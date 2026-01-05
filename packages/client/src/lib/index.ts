@@ -21,3 +21,4 @@ export { cn } from "./utils";
 
 export { downloadResponseAsFile } from "./download";
 export { monthLabel, monthShort, monthToRange } from "./date";
+export { formatNGN, formatNGNWithDecimals } from "./number";

@@ -32,3 +32,5 @@ export type {
   ByCategoryRow,
   ByCategoryResponse,
 } from "./report";
+
+export type { DashboardData } from "./dashboard";

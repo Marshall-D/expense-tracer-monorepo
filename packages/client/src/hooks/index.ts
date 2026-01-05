@@ -26,3 +26,5 @@ export {
   useCategoryReport,
   useExportExpenses,
 } from "./useReports";
+
+export { useDashboardData } from "./useDashboardData";
