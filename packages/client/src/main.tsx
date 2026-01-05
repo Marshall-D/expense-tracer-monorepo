@@ -26,10 +26,9 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <App />
         <Toaster
-          position="top-center" // moved to top-center
+          position="top-center"
           toastOptions={{
-            // Default options for all toasts
-            duration: 8000, // 8 seconds so messages are visible longer
+            duration: 8000,
             style: {
               padding: "10px 14px",
               borderRadius: "12px",

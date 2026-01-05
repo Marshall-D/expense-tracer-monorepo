@@ -28,13 +28,8 @@ export function useLogin() {
       qc.invalidateQueries({ queryKey: queryKeys.budgets });
       qc.invalidateQueries({ queryKey: queryKeys.categories });
 
-      // show success toast (centralized)
       t.success("Signed in successfully");
     },
-    onError(err: any) {
-      // Optionally show a toast here as fallback (component also shows error).
-      // Keep minimal here; component will show error toast with message.
-      // t.error(err?.message ?? "Login failed");
-    },
+    onError(err: any) {},
   });
 }

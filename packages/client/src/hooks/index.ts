@@ -1,6 +1,4 @@
 // packages/client/src/hooks/index.ts
-// Explicit re-exports — this is the public API surface for the hooks folder.
-// Keep this file curated: only export what's intended to be used by other modules.
 
 export {
   useBudgets,
@@ -34,3 +32,5 @@ export { useExpensesPage } from "./useExpensesPage";
 export { useCategoryActions } from "./useCategoryActions";
 
 export { useBudgetsData } from "./useBudgetsData";
+
+export { useLoginHandler, useRegisterHandler } from "./useAuthHandlers";

@@ -3,7 +3,6 @@
  * BudgetsView (presentational)
  *
  * Receives all data and handlers via props and renders the UI.
- * No data fetching or side-effects here — only mapping of props -> UI.
  *
  */
 

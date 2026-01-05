@@ -9,10 +9,6 @@ import { queryKeys } from "@/lib";
  * - Accepts an object identifying the budget period and category.
  * - Returns a react-query result where `data` is the summed spent number.
  *
- * Params:
- *  - categoryId?: string | null
- *  - category?: string | null  (fallback name, e.g. "Uncategorized")
- *  - periodStart: string (ISO date or YYYY-MM-DD; will be normalized to month)
  */
 type Args = {
   categoryId?: string | null;

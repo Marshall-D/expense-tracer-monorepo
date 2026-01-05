@@ -1,5 +1,4 @@
 // packages/client/src/lib/index.ts
-// Explicit re-exports for the lib folder — the public surface for shared utilities.
 
 export { api } from "./api";
 export { queryKeys } from "./queryKeys";
@@ -22,3 +21,4 @@ export { cn } from "./utils";
 export { downloadResponseAsFile } from "./download";
 export { monthLabel, monthShort, monthToRange } from "./date";
 export { formatNGN, formatNGNWithDecimals } from "./number";
+export { validateEmail, validatePassword, validateName } from "./authValidator";

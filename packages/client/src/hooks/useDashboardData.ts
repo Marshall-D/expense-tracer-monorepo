@@ -13,8 +13,7 @@ import {
   useExpenses,
   useCategories,
 } from "@/hooks";
-import { monthToRange } from "@/lib/date";
-import { formatNGN, formatNGNWithDecimals } from "@/lib/number";
+import { formatNGN, formatNGNWithDecimals, monthToRange } from "@/lib";
 import type { DashboardData } from "@/types";
 
 /** Helper: safe percent change */

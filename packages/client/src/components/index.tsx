@@ -1,6 +1,4 @@
 // packages/client/src/components/index.ts
-// Explicit re-exports for the components folder.
-// Keep this file curated — it is the public surface for components.
 
 export { BudgetCard } from "./budgetCard";
 
