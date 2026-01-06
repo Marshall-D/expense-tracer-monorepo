@@ -202,8 +202,9 @@ Simple architecture overview (Client ↔ API ↔ MongoDB):
 
 ```mermaid
 flowchart LR
-  Client[Client\n(Vite)\nBrowser (VITE_*)] -->|HTTP API| API[API\n(Serverless Lambdas)\nLocal Express (dev)]
-  API -->|MongoDB driver| Mongo[(MongoDB)]
+  Client[Client (Vite) - Browser (VITE_*)] -->|HTTP API| API[API - Serverless Lambdas\nLocal Express (dev)]
+  API -->|MongoDB driver| Mongo[MongoDB]
+
 
 
 Key design decision
