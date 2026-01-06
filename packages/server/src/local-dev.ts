@@ -33,6 +33,12 @@ import { handler as reportsByCategoryHandler } from "./handlers/reports/category
 import { handler as reportsTrendsHandler } from "./handlers/reports/trendReports";
 import { handler as expensesExportHandler } from "./handlers/reports/expensesReport";
 
+import { assertEnv } from "./lib/env";
+
+// ensure required runtime envs are present for local dev
+assertEnv("MONGO_URI", "Set MONGO_URI in packages/server/.env or SSM");
+assertEnv("JWT_SECRET", "Set JWT_SECRET in packages/server/.env or SSM");
+
 const app = express();
 app.use(bodyParser.json());
 app.use(cors()); // allow CORS for local dev

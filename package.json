@@ -5,12 +5,20 @@
     "concurrently": "^8.0.0"
   },
   "scripts": {
-    "build": "pnpm -w -r run build",
-    "dev": "concurrently \"pnpm --filter server start:offline\" \"pnpm --filter client dev\"",
+    "build:client": "pnpm --filter client run build",
+    "build:server": "pnpm --filter server run build",
+    "build": "pnpm run build:client && pnpm run build:server",
+    "build:all": "pnpm run build",
+    "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
+    "dev:all": "pnpm run dev",
     "typecheck": "pnpm -w -r run typecheck",
     "lint": "pnpm -w -r run lint",
+    "check:env": "node ./scripts/check-env.js",
+    "setup": "node ./scripts/setup-local.js",
+    "bootstrap": "pnpm install",
     "deploy:server": "bash packages/server/src/scripts/deploy-live.sh",
-    "deploy:client:s3": "pnpm --filter client run deploy:s3"
+    "deploy:client:s3": "pnpm --filter client run deploy:s3",
+    "ci:build": "pnpm install --frozen-lockfile && pnpm run check:env && pnpm run build"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

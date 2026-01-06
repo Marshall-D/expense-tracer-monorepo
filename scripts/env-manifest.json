@@ -1,0 +1,4 @@
+{
+  "packages/client": ["VITE_API_BASE"],
+  "packages/server": ["MONGO_URI", "JWT_SECRET"]
+}

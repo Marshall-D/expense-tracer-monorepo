@@ -12,8 +12,7 @@ import axios from "axios";
 import { getToken, removeToken, removeUser } from "./storage";
 import { ROUTES } from "@/utils";
 
-const API_BASE =
-  (import.meta.env.VITE_API_BASE as string) || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE as string;
 
 const api = axios.create({
   baseURL: API_BASE,
