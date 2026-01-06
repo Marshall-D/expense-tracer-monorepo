@@ -197,10 +197,9 @@ Text summary
   Simple diagram
 
 ```mermaid
-
-  flowchart LR
-  Client[Client (Browser)<br/>(React + Vite)] ---|HTTP API| API[API (Serverless handlers / Local Express dev)]
-  API ---|Mongo Driver| DB[(MongoDB)]
+flowchart LR
+  Client[Client\n(Vite)\nBrowser (VITE_*)] -->|HTTP API| API[API\n(Serverless Lambdas)\nLocal Express (dev)]
+  API -->|MongoDB driver| Mongo[(MongoDB)]
 ```
 
 Key design decision
