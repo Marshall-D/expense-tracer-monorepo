@@ -196,15 +196,9 @@ Text summary
 - Production secrets stored in AWS SSM; deploy.sh reads them at deploy time.
   Simple diagram
 
-+------------------+ +------------------+ +----------------+
-| Client (Vite) | <-----> | Server (Lambda) | <-----> | MongoDB |
-| (browser) | HTTP API | serverless/apis | Driver | (Atlas or local)|
-+------------------+ +------------------+ +----------------+
-^ ^
-| |
-| +-- Uses secrets from AWS SSM
-|
-+-- Built & deployed to static host (aws amplify)
+  flowchart LR
+  Client[Client (Browser)<br/>(React + Vite)] ---|HTTP API| API[API (Serverless handlers / Local Express dev)]
+  API ---|Mongo Driver| DB[(MongoDB)]
 
 Key design decision
 
