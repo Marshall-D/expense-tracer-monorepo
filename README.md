@@ -196,9 +196,12 @@ Text summary
 - Production secrets stored in AWS SSM; deploy.sh reads them at deploy time.
   Simple diagram
 
+```mermaid
+
   flowchart LR
   Client[Client (Browser)<br/>(React + Vite)] ---|HTTP API| API[API (Serverless handlers / Local Express dev)]
   API ---|Mongo Driver| DB[(MongoDB)]
+```
 
 Key design decision
 
