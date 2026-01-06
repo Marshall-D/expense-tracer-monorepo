@@ -14,10 +14,8 @@
     "typecheck": "pnpm -w -r run typecheck",
     "lint": "pnpm -w -r run lint",
     "check:env": "node ./scripts/check-env.js",
-    "setup": "node ./scripts/setup-local.js",
     "bootstrap": "pnpm install",
     "deploy:server": "bash packages/server/src/scripts/deploy-live.sh",
-    "deploy:client:s3": "pnpm --filter client run deploy:s3",
     "ci:build": "pnpm install --frozen-lockfile && pnpm run check:env && pnpm run build"
   },
   "dependencies": {
